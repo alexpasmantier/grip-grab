@@ -1,0 +1,13 @@
+[package]
+name = "gripgrep"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.86"
+clap = { version = "4.5.9", features = ["derive"] }
+crossbeam = { version = "0.8.4", features = ["crossbeam-queue"] }
+grep = "0.3.1"
+ignore = "0.4.22"
