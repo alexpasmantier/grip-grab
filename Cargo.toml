@@ -2,8 +2,20 @@
 name = "grab"
 version = "0.1.0"
 edition = "2021"
+authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
+license = "Apache-2.0"
+description = "A faster, more lightweight ripgrep alternative."
+readme = "README.md"
+homepage = "https://github.com/alexpasmantier/grab"
+repository = "https://github.com/alexpasmantier/grab"
+keywords = ["cli", "search", "grep", "ripgrep", "rust", "files"]
+categories = [
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
+]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.86"

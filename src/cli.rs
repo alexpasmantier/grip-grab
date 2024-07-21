@@ -5,19 +5,19 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(name = "git")]
-#[command(arg_required_else_help=true, version, about = "A grep-like utility", long_about = None)]
+#[command(arg_required_else_help=true, version, about = "A faster, more lightweight, ripgrep alternative.", long_about = None)]
 pub struct Cli {
-    /// pattern to search for
+    /// a regex pattern to search for
     pub pattern: String,
 
     /// path in which to search recursively
     pub path: PathBuf,
 
-    /// paths to ignore when walking directory
+    /// paths to ignore when recursively walking target directory
     #[clap(short = 'I', long)]
     pub ignore_paths: Vec<PathBuf>,
 
-    /// respect .gitignore when walking directory
+    /// respect .gitignore when recursively walking directory
     #[clap(short = 'G', long, default_value_t = true)]
     pub respect_gitignore: bool,
 
@@ -29,7 +29,7 @@ pub struct Cli {
     #[clap(short = 'T', long, default_value_t = 4)]
     pub n_threads: usize,
 
-    /// enable multiline matching (off by default)
+    /// enable multiline matching
     #[clap(short = 'U', long, default_value_t = false)]
     pub multiline: bool,
 
