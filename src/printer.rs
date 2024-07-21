@@ -68,10 +68,10 @@ impl Default for ColorSpecs {
 
 impl Printer {
     pub fn new(config: PrinterConfig) -> Printer {
-        let color_choice = if config.mode == PrintMode::Text {
-            ColorChoice::Always
-        } else {
+        let color_choice = if !config.colored_output || config.mode == PrintMode::Json {
             ColorChoice::Never
+        } else {
+            ColorChoice::Always
         };
         let bufwriter = BufferWriter::stdout(color_choice);
         let buffer = bufwriter.buffer();
@@ -91,15 +91,17 @@ impl Printer {
             path = results.path.strip_prefix(self.cwd.clone()).unwrap();
         }
         match self.config.mode {
-            PrintMode::Text => self.write_colored(path, results.results),
+            PrintMode::Text => self.write_colored_text_results(path, results.results),
             PrintMode::Json => self.writeln_to_buffer(serde_json::to_string(&results)?),
-            PrintMode::Files => {
-                self.writeln_to_buffer(format!("{}", results.path.to_string_lossy()))
-            }
+            PrintMode::Files => self.write_colored_path(path),
         }
     }
 
-    fn write_colored(&mut self, path: &Path, search_results: Vec<SearchResult>) -> Result<()> {
+    fn write_colored_text_results(
+        &mut self,
+        path: &Path,
+        search_results: Vec<SearchResult>,
+    ) -> Result<()> {
         self.write_colored_path(path)?;
         self.write_colored_search_results(search_results)?;
         self.write_newline_to_buffer()
