@@ -57,9 +57,9 @@ pub struct Cli {
     #[clap(short = 'A', long, default_value_t = false)]
     pub absolute_paths: bool,
 
-    /// toggle colored output (defaults to ON)
-    #[clap(short = 'C', long, default_value_t = true)]
-    pub colored_output: bool,
+    /// disable colored output (colored by default)
+    #[clap(short = 'C', long, default_value_t = false)]
+    pub disable_colored_output: bool,
 
     /// filter on filetype (defaults to all filetypes)
     #[clap(short = 't', long)]
@@ -102,7 +102,7 @@ pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
             PrintMode::Text
         },
         absolute_paths: cli.absolute_paths,
-        colored_output: cli.colored_output,
+        colored_output: !cli.disable_colored_output,
         filter_filetypes: cli.filter_filetypes,
     })
 }

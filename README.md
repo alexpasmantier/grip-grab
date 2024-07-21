@@ -55,8 +55,8 @@ Options:
           output file paths only
   -A, --absolute-paths
           output absolute paths (defaults to relative)
-  -C, --colored-output
-          toggle colored output (defaults to ON)
+  -C, --disable-colored-output
+          disable colored output (colored by default)
   -t, --filter-filetypes <FILTER_FILETYPES>
           filter on filetype (defaults to all filetypes)
   -h, --help
