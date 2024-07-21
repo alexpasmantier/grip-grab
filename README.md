@@ -1,27 +1,27 @@
 
-# Grab
+# Grip-grab 🧤
 
 A faster, more lightweight, ripgrep alternative.
 
 ```sh
-❯ grab "regex_pattern" .
+❯ gg "regex_pattern" .
 ```
 
 ## Installation
 ### Using Cargo
 ```bash
-❯ cargo install grab
+❯ cargo install gg
 ```
 
 ## Usage
 ```sh
-❯ grab --help
+❯ gg --help
 ```
 
 ```plaintext
 A faster, more lightweight, ripgrep alternative.
 
-Usage: grab [OPTIONS] <PATTERN> <PATH>
+Usage: gg [OPTIONS] <PATTERN> <PATH>
 
 Arguments:
   <PATTERN>  a regex pattern to search for
@@ -43,11 +43,11 @@ Options:
 ## Examples
 ### Basic usage
 ```sh
-❯ grab pub .
+❯ gg pub .
 ```
 
 ```
-/somewhere/grab/src/cli.rs
+/somewhere/gg/src/cli.rs
 9: pub struct Cli {
 11:     pub pattern: String,
 14:     pub path: PathBuf,
@@ -69,11 +69,11 @@ Options:
 54:     pub print_mode: PrintMode,
 57: pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
 
-/somewhere/grab/src/utils.rs
+/somewhere/gg/src/utils.rs
 3: pub fn resolve_paths(paths: Vec<PathBuf>) -> Vec<PathBuf> {
 7: pub fn resolve_path(path: PathBuf) -> PathBuf {
 
-/somewhere/grab/src/search.rs
+/somewhere/gg/src/search.rs
 12: pub struct SearchResult {
 13:     pub line_number: u64,
 14:     pub line: String,
@@ -86,13 +86,13 @@ Options:
 82: pub fn build_matcher(pattern: &str) -> anyhow::Result<RegexMatcher> {
 87: pub fn build_searcher(multiline: bool) -> Searcher {
 
-/somewhere/grab/src/fs.rs
+/somewhere/gg/src/fs.rs
 5: pub fn walk_builder(
 
-/somewhere/grab/src/main.rs
+/somewhere/gg/src/main.rs
 17: pub fn main() -> anyhow::Result<()> {
 
-/somewhere/grab/src/printer.rs
+/somewhere/gg/src/printer.rs
 6: pub enum PrintMode {
 12: pub struct Printer {
 18:     pub fn new(mode: PrintMode) -> Printer {
@@ -102,11 +102,11 @@ Options:
 
 ### JSON output
 ```sh
-❯ ./target/release/grab "impl" . --json | jq
+❯ gg "impl" . --json | jq
 ```
 ```json
 {
-  "path": "/somewhere/grab/src/search.rs",
+  "path": "/somewhere/gg/src/search.rs",
   "results": [
     {
       "line_number": 23,
@@ -123,7 +123,7 @@ Options:
   ]
 }
 {
-  "path": "/somewhere/grab/src/printer.rs",
+  "path": "/somewhere/gg/src/printer.rs",
   "results": [
     {
       "line_number": 17,
@@ -135,15 +135,15 @@ Options:
 
 ### Filenames only
 ```sh
-❯ ./target/release/grab "pub" . -f
+❯ gg "pub" . -f
 ```
 
 ```
-/somwhere/grab/src/cli.rs
-/somwhere/grab/src/utils.rs
-/somwhere/grab/src/search.rs
-/somwhere/grab/src/fs.rs
-/somwhere/grab/src/main.rs
-/somwhere/grab/src/printer.rs
-/somwhere/grab/README.md
+/somwhere/gg/src/cli.rs
+/somwhere/gg/src/utils.rs
+/somwhere/gg/src/search.rs
+/somwhere/gg/src/fs.rs
+/somwhere/gg/src/main.rs
+/somwhere/gg/src/printer.rs
+/somwhere/gg/README.md
 ```
