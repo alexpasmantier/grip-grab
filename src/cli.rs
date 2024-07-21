@@ -60,6 +60,10 @@ pub struct Cli {
     /// toggle colored output (defaults to ON)
     #[clap(short = 'C', long, default_value_t = true)]
     pub colored_output: bool,
+
+    /// filter on filetype (defaults to all filetypes)
+    #[clap(short = 't', long)]
+    pub filter_filetypes: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -74,6 +78,7 @@ pub struct PostProcessedCli {
     pub print_mode: PrintMode,
     pub absolute_paths: bool,
     pub colored_output: bool,
+    pub filter_filetypes: Vec<String>,
 }
 
 pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
@@ -98,5 +103,6 @@ pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
         },
         absolute_paths: cli.absolute_paths,
         colored_output: cli.colored_output,
+        filter_filetypes: cli.filter_filetypes,
     })
 }

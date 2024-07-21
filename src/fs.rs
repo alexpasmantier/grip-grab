@@ -7,12 +7,16 @@ pub fn walk_builder(
     ignored_paths: &[PathBuf],
     n_threads: usize,
     respect_gitignore: bool,
+    filter_filetypes: Vec<String>,
 ) -> WalkBuilder {
     let mut builder = WalkBuilder::new(path);
 
     // ft-based filtering
     let mut types_builder = TypesBuilder::new();
     types_builder.add_defaults();
+    filter_filetypes.iter().for_each(|ft| {
+        types_builder.select(ft);
+    });
     builder.types(types_builder.build().unwrap());
 
     // path-based filtering

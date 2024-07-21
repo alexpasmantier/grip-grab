@@ -37,18 +37,32 @@ Arguments:
   <PATH>     path in which to search recursively
 
 Options:
-  -e, --patterns <PATTERNS>          you can specify multiple patterns using -e "pattern1" -e "pattern2" etc
-  -I, --ignore-paths <IGNORE_PATHS>  paths to ignore when recursively walking target directory
-  -G, --respect-gitignore            respect .gitignore when recursively walking directory
-  -M, --max-results <MAX_RESULTS>    upper boundary for the number of results to expect (will panic if #results > max_results) [default: 1000]
-  -T, --n-threads <N_THREADS>        number of threads to use [default: 4]
-  -U, --multiline                    enable multiline matching
-      --json                         output in JSON format
-  -f, --file-paths-only              output file paths only
-  -A, --absolute-paths               output absolute paths (defaults to relative)
-  -C, --colored-output               toggle colored output (defaults to ON)
-  -h, --help                         Print help
-  -V, --version                      Print version
+  -e, --patterns <PATTERNS>
+          you can specify multiple patterns using -e "pattern1" -e "pattern2" etc
+  -I, --ignore-paths <IGNORE_PATHS>
+          paths to ignore when recursively walking target directory
+  -G, --respect-gitignore
+          respect .gitignore when recursively walking directory
+  -M, --max-results <MAX_RESULTS>
+          upper boundary for the number of results to expect (will panic if #results > max_results) [default: 1000]
+  -T, --n-threads <N_THREADS>
+          number of threads to use [default: 4]
+  -U, --multiline
+          enable multiline matching
+      --json
+          output in JSON format
+  -f, --file-paths-only
+          output file paths only
+  -A, --absolute-paths
+          output absolute paths (defaults to relative)
+  -C, --colored-output
+          toggle colored output (defaults to ON)
+  -t, --filter-filetypes <FILTER_FILETYPES>
+          filter on filetype (defaults to all filetypes)
+  -h, --help
+          Print help
+  -V, --version
+          Print version
 ```
 
 ## Examples

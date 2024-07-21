@@ -25,6 +25,7 @@ pub fn main() -> anyhow::Result<()> {
         &cli_args.ignored_paths,
         cli_args.n_threads,
         cli_args.respect_gitignore,
+        cli_args.filter_filetypes,
     );
     haystack_builder.build_parallel().run(|| {
         Box::new(|entry: Result<DirEntry, ignore::Error>| match entry {
