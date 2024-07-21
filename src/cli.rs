@@ -6,7 +6,7 @@ use clap::{ArgGroup, Parser};
 #[derive(Parser, Debug)]
 #[command(name = "grip-grab")]
 #[command(bin_name = "gg")]
-#[command(version, about = "A faster, more lightweight, ripgrep alternative.", long_about = None)]
+#[command(version, about = "A faster, more lightweight, ripgrep alternative.", long_about = None, arg_required_else_help=true)]
 #[command(group(
     ArgGroup::new("pattern_group")
         .args(&["pattern", "patterns"])

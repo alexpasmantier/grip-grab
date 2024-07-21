@@ -30,13 +30,14 @@ echo 'unalias gg' >> ~/.zshrc
 ```plaintext
 A faster, more lightweight, ripgrep alternative.
 
-Usage: gg [OPTIONS] <PATTERN> <PATH>
+Usage: gg [OPTIONS] <PATTERN|--patterns <PATTERNS>> <PATH>
 
 Arguments:
-  <PATTERN>  a regex pattern to search for
+  [PATTERN]  a regex pattern to search for
   <PATH>     path in which to search recursively
 
 Options:
+  -e, --patterns <PATTERNS>          you can specify multiple patterns using -e "pattern1" -e "pattern2" etc
   -I, --ignore-paths <IGNORE_PATHS>  paths to ignore when recursively walking target directory
   -G, --respect-gitignore            respect .gitignore when recursively walking directory
   -M, --max-results <MAX_RESULTS>    upper boundary for the number of results to expect (will panic if #results > max_results) [default: 1000]
@@ -48,7 +49,6 @@ Options:
   -C, --colored-output               toggle colored output (defaults to ON)
   -h, --help                         Print help
   -V, --version                      Print version
-
 ```
 
 ## Examples
