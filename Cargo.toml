@@ -8,7 +8,7 @@ description = "A faster, more lightweight ripgrep alternative."
 readme = "README.md"
 homepage = "https://github.com/alexpasmantier/grab"
 repository = "https://github.com/alexpasmantier/grab"
-keywords = ["cli", "search", "grep", "ripgrep", "rust", "files"]
+keywords = ["cli", "search", "grep", "ripgrep", "rust"]
 categories = [
   "command-line-utilities",
   "command-line-interface",
