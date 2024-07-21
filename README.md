@@ -14,12 +14,12 @@ https://github.com/user-attachments/assets/bef374b0-6b71-408f-80e4-b43d388d6af5
 ## Installation
 ### Using Cargo
 ```bash
-❯ cargo install grip-grab
+cargo install grip-grab
 ```
 
-**NOTE:** if using zsh with the `git` plugin, you might need to add the following line to your `~/.zshrc` in order for `gg` to work:
+**NOTE:** if using zsh with the `git` plugin, you might need to unalias `gg` in order for grip-grab's `gg` to work:
 ```sh
-unalias gg
+echo 'unalias gg' >> ~/.zshrc
 ```
 
 ## Usage
