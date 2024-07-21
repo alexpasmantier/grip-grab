@@ -10,7 +10,7 @@ A faster, more lightweight, ripgrep alternative.
 ## Installation
 ### Using Cargo
 ```bash
-❯ cargo install gg
+❯ cargo install grip-grab
 ```
 
 ## Usage
