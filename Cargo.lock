@@ -306,6 +306,7 @@ dependencies = [
  "ignore",
  "serde",
  "serde_json",
+ "termcolor",
 ]
 
 [[package]]

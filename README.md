@@ -40,6 +40,8 @@ Options:
   -U, --multiline                    enable multiline matching
       --json                         output in JSON format
   -f, --file-paths-only              output file paths only
+  -A, --absolute-paths               output absolute paths (defaults to relative)
+  -C, --colored-output               toggle colored output (defaults to ON)
   -h, --help                         Print help
   -V, --version                      Print version
 

@@ -40,6 +40,14 @@ pub struct Cli {
     /// output file paths only
     #[clap(short = 'f', long, default_value_t = false)]
     pub file_paths_only: bool,
+
+    /// output absolute paths (defaults to relative)
+    #[clap(short = 'A', long, default_value_t = false)]
+    pub absolute_paths: bool,
+
+    /// toggle colored output (defaults to ON)
+    #[clap(short = 'C', long, default_value_t = true)]
+    pub colored_output: bool,
 }
 
 #[derive(Debug)]
@@ -52,6 +60,8 @@ pub struct PostProcessedCli {
     pub respect_gitignore: bool,
     pub multiline: bool,
     pub print_mode: PrintMode,
+    pub absolute_paths: bool,
+    pub colored_output: bool,
 }
 
 pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
@@ -70,5 +80,7 @@ pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
         } else {
             PrintMode::Text
         },
+        absolute_paths: cli.absolute_paths,
+        colored_output: cli.colored_output,
     })
 }

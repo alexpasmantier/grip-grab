@@ -1,8 +1,13 @@
-use std::io::{self, Result, StdoutLock, Write};
+use std::{
+    env::current_dir,
+    io::{Result, Write},
+    path::{Path, PathBuf},
+};
+use termcolor::{Buffer, BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
-use crate::search::FileResults;
+use crate::search::{FileResults, SearchResult};
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum PrintMode {
     Text,
     Json,
@@ -10,33 +15,120 @@ pub enum PrintMode {
 }
 
 pub struct Printer {
-    writer: io::BufWriter<StdoutLock<'static>>,
-    mode: PrintMode,
+    writer: BufferWriter,
+    buffer: Buffer,
+    config: PrinterConfig,
+    cwd: PathBuf,
+}
+
+pub struct PrinterConfig {
+    pub mode: PrintMode,
+    // TODO: refactorize this
+    pub colored_output: bool,
+    pub color_specs: ColorSpecs,
+    pub absolute_paths: bool,
+}
+
+impl Default for PrinterConfig {
+    fn default() -> PrinterConfig {
+        PrinterConfig {
+            mode: PrintMode::Text,
+            colored_output: true,
+            color_specs: ColorSpecs::default(),
+            absolute_paths: false,
+        }
+    }
+}
+
+pub struct ColorSpecs {
+    paths: ColorSpec,
+    line_numbers: ColorSpec,
+    lines: ColorSpec,
+}
+
+impl Default for ColorSpecs {
+    fn default() -> ColorSpecs {
+        let mut paths: ColorSpec = ColorSpec::new();
+        paths
+            .set_fg(Some(Color::Green))
+            .set_italic(true)
+            .set_bold(true)
+            .set_underline(true);
+        let mut line_numbers: ColorSpec = ColorSpec::new();
+        line_numbers.set_fg(Some(Color::Yellow)).set_bold(true);
+        let mut lines: ColorSpec = ColorSpec::new();
+        lines.set_fg(Some(Color::White));
+        ColorSpecs {
+            paths,
+            line_numbers,
+            lines,
+        }
+    }
 }
 
 impl Printer {
-    pub fn new(mode: PrintMode) -> Printer {
-        let stdout = io::stdout();
-        let lock = stdout.lock();
+    pub fn new(config: PrinterConfig) -> Printer {
+        let color_choice = if config.mode == PrintMode::Text {
+            ColorChoice::Always
+        } else {
+            ColorChoice::Never
+        };
+        let bufwriter = BufferWriter::stdout(color_choice);
+        let buffer = bufwriter.buffer();
         Printer {
-            writer: io::BufWriter::new(lock),
-            mode,
+            writer: bufwriter,
+            buffer,
+            config,
+            cwd: current_dir().unwrap(),
         }
     }
 
     pub fn write(&mut self, results: FileResults) -> Result<()> {
-        self.writeln_to_buffer(match self.mode {
-            PrintMode::Text => format!("{}", results),
-            PrintMode::Json => serde_json::to_string(&results)?,
-            PrintMode::Files => format!("{}", results.path.to_string_lossy()),
+        let path: &Path;
+        if self.config.absolute_paths {
+            path = &results.path;
+        } else {
+            path = results.path.strip_prefix(self.cwd.clone()).unwrap();
+        }
+        match self.config.mode {
+            PrintMode::Text => self.write_colored(path, results.results),
+            PrintMode::Json => self.writeln_to_buffer(serde_json::to_string(&results)?),
+            PrintMode::Files => {
+                self.writeln_to_buffer(format!("{}", results.path.to_string_lossy()))
+            }
+        }
+    }
+
+    fn write_colored(&mut self, path: &Path, search_results: Vec<SearchResult>) -> Result<()> {
+        self.write_colored_path(path)?;
+        self.write_colored_search_results(search_results)?;
+        self.write_newline_to_buffer()
+    }
+
+    fn write_colored_path(&mut self, path: &Path) -> Result<()> {
+        self.buffer.set_color(&self.config.color_specs.paths)?;
+        writeln!(&mut self.buffer, "{}", path.to_string_lossy())
+    }
+
+    fn write_colored_search_results(&mut self, results: Vec<SearchResult>) -> Result<()> {
+        results.iter().try_for_each(|result| {
+            self.buffer
+                .set_color(&self.config.color_specs.line_numbers)?;
+            write!(&mut self.buffer, "{}:\t", result.line_number)?;
+            self.buffer.set_color(&self.config.color_specs.lines)?;
+            write!(&mut self.buffer, "{}", result.line)
         })
     }
 
     fn writeln_to_buffer(&mut self, text: String) -> Result<()> {
-        writeln!(self.writer, "{}", text)
+        writeln!(self.buffer, "{}", text)
+    }
+
+    fn write_newline_to_buffer(&mut self) -> Result<()> {
+        writeln!(self.buffer, "")
     }
 
     pub fn print(&mut self) -> Result<()> {
-        self.writer.flush()
+        self.writer.print(&self.buffer)
     }
 }

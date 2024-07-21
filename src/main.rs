@@ -2,6 +2,7 @@ use clap::Parser;
 
 use crossbeam::queue::ArrayQueue;
 use ignore::DirEntry;
+use printer::PrinterConfig;
 
 use crate::cli::{process_cli_args, Cli};
 use crate::fs::walk_builder;
@@ -49,7 +50,13 @@ pub fn main() -> anyhow::Result<()> {
         })
     });
 
-    let mut printer = Printer::new(cli_args.print_mode);
+    let printer_config = PrinterConfig {
+        mode: cli_args.print_mode,
+        absolute_paths: cli_args.absolute_paths,
+        colored_output: cli_args.colored_output,
+        ..Default::default()
+    };
+    let mut printer = Printer::new(printer_config);
     queue
         .into_iter()
         .for_each(|file_results| printer.write(file_results).unwrap());
