@@ -13,6 +13,11 @@ A faster, more lightweight, ripgrep alternative.
 ❯ cargo install grip-grab
 ```
 
+**NOTE:** if using zsh with the `git` plugin, you might need to add the following line to your `~/.zshrc` in order for `gg` to work:
+```sh
+unalias gg
+```
+
 ## Usage
 ```sh
 ❯ gg --help
