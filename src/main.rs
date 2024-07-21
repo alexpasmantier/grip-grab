@@ -19,7 +19,7 @@ pub fn main() -> anyhow::Result<()> {
     let cli_args = process_cli_args(Cli::parse())?;
     let queue: ArrayQueue<FileResults> = ArrayQueue::new(cli_args.max_results);
 
-    let matcher = build_matcher(&cli_args.pattern)?;
+    let matcher = build_matcher(&cli_args.patterns)?;
     let haystack_builder = walk_builder(
         &cli_args.path,
         &cli_args.ignored_paths,

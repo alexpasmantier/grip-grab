@@ -79,9 +79,9 @@ pub fn search_file<'a>(
     })
 }
 
-pub fn build_matcher(pattern: &str) -> anyhow::Result<RegexMatcher> {
+pub fn build_matcher(patterns: &Vec<String>) -> anyhow::Result<RegexMatcher> {
     let builder = RegexMatcherBuilder::new();
-    Ok(builder.build(pattern)?)
+    Ok(builder.build_many(patterns)?)
 }
 
 pub fn build_searcher(multiline: bool) -> Searcher {
