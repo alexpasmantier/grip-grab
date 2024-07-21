@@ -3,16 +3,50 @@
 
 A faster, more lightweight, ripgrep alternative.
 
+```sh
+❯ grab "regex_pattern" .
+```
+
 ## Installation
 ### Using Cargo
 ```bash
-$ cargo install grab
+❯ cargo install grab
 ```
 
 ## Usage
 ```sh
-$ grab "some\s+pattern" .
+❯ grab --help
+```
 
+```plaintext
+A faster, more lightweight, ripgrep alternative.
+
+Usage: grab [OPTIONS] <PATTERN> <PATH>
+
+Arguments:
+  <PATTERN>  a regex pattern to search for
+  <PATH>     path in which to search recursively
+
+Options:
+  -I, --ignore-paths <IGNORE_PATHS>  paths to ignore when recursively walking target directory
+  -G, --respect-gitignore            respect .gitignore when recursively walking directory
+  -M, --max-results <MAX_RESULTS>    upper boundary for the number of results to expect (will panic if #results > max_results) [default: 1000]
+  -T, --n-threads <N_THREADS>        number of threads to use [default: 4]
+  -U, --multiline                    enable multiline matching
+      --json                         output in JSON format
+  -f, --file-paths-only              output file paths only
+  -h, --help                         Print help
+  -V, --version                      Print version
+
+```
+
+## Examples
+### Basic usage
+```sh
+❯ grab pub .
+```
+
+```
 /somewhere/grab/src/cli.rs
 9: pub struct Cli {
 11:     pub pattern: String,
@@ -64,32 +98,52 @@ $ grab "some\s+pattern" .
 18:     pub fn new(mode: PrintMode) -> Printer {
 27:     pub fn write(&mut self, results: FileResults) -> Result<()> {
 39:     pub fn print(&mut self) -> Result<()> {
-
 ```
 
-## Documentation
+### JSON output
 ```sh
-$ grab --help
+❯ ./target/release/grab "impl" . --json | jq
+```
+```json
+{
+  "path": "/somewhere/grab/src/search.rs",
+  "results": [
+    {
+      "line_number": 23,
+      "line": "impl fmt::Display for FileResults {\n"
+    },
+    {
+      "line_number": 33,
+      "line": "impl FileResults {\n"
+    },
+    {
+      "line_number": 43,
+      "line": "impl<'a> IntoIterator for &'a FileResults {\n"
+    }
+  ]
+}
+{
+  "path": "/somewhere/grab/src/printer.rs",
+  "results": [
+    {
+      "line_number": 17,
+      "line": "impl Printer {\n"
+    }
+  ]
+}
 ```
 
-```plaintext
-A faster, more lightweight, ripgrep alternative.
+### Filenames only
+```sh
+❯ ./target/release/grab "pub" . -f
+```
 
-Usage: grab [OPTIONS] <PATTERN> <PATH>
-
-Arguments:
-  <PATTERN>  a regex pattern to search for
-  <PATH>     path in which to search recursively
-
-Options:
-  -I, --ignore-paths <IGNORE_PATHS>  paths to ignore when recursively walking target directory
-  -G, --respect-gitignore            respect .gitignore when recursively walking directory
-  -M, --max-results <MAX_RESULTS>    upper boundary for the number of results to expect (will panic if #results > max_results) [default: 1000]
-  -T, --n-threads <N_THREADS>        number of threads to use [default: 4]
-  -U, --multiline                    enable multiline matching
-      --json                         output in JSON format
-  -f, --file-paths-only              output file paths only
-  -h, --help                         Print help
-  -V, --version                      Print version
-
+```
+/somwhere/grab/src/cli.rs
+/somwhere/grab/src/utils.rs
+/somwhere/grab/src/search.rs
+/somwhere/grab/src/fs.rs
+/somwhere/grab/src/main.rs
+/somwhere/grab/src/printer.rs
+/somwhere/grab/README.md
 ```
