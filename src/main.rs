@@ -1,43 +1,40 @@
 use clap::Parser;
-use cli::process_cli_args;
-use std::io;
-use std::io::Write;
 
 use crossbeam::queue::ArrayQueue;
-use fs::walk_builder;
 use ignore::DirEntry;
-use search::{build_matcher, search_file};
 
-use crate::cli::Cli;
+use crate::cli::{process_cli_args, Cli};
+use crate::fs::walk_builder;
+use crate::printer::Printer;
+use crate::search::{build_matcher, search_file, FileResults};
 
 mod cli;
 mod fs;
+mod printer;
 mod search;
 mod utils;
 
 pub fn main() -> anyhow::Result<()> {
     let cli_args = process_cli_args(Cli::parse())?;
-    let stdout = io::stdout();
-    let lock = stdout.lock();
-    let mut writer = io::BufWriter::new(lock);
-
-    let queue: ArrayQueue<String> = ArrayQueue::new(cli_args.max_results);
+    let queue: ArrayQueue<FileResults> = ArrayQueue::new(cli_args.max_results);
 
     let matcher = build_matcher(&cli_args.pattern)?;
-    let haystack_builder = walk_builder(&cli_args.paths, &cli_args.ignored_paths);
-    // PERF: is this tweakable ?
+    let haystack_builder = walk_builder(
+        &cli_args.path,
+        &cli_args.ignored_paths,
+        cli_args.n_threads,
+        cli_args.respect_gitignore,
+    );
     haystack_builder.build_parallel().run(|| {
         Box::new(|entry: Result<DirEntry, ignore::Error>| match entry {
             Ok(entry) => {
                 let file_type = entry.file_type().unwrap();
                 if !file_type.is_dir() {
                     let path = entry.path().to_path_buf();
-                    match search_file(&path, &matcher) {
+                    match search_file(path, &matcher, cli_args.multiline) {
                         Ok(file_results) => {
                             if !file_results.is_empty() {
-                                let path_str: String = path.to_str().unwrap().to_string();
-                                queue.push(path_str).unwrap();
-                                //println!("{}", entry.path().to_string_lossy())
+                                queue.push(file_results).unwrap();
                             }
                         }
                         Err(_err) => (),
@@ -51,11 +48,13 @@ pub fn main() -> anyhow::Result<()> {
             }
         })
     });
+
+    let mut printer = Printer::new(cli_args.print_mode);
     queue
         .into_iter()
-        .for_each(|path| writeln!(writer, "{}", path).unwrap());
+        .for_each(|file_results| printer.write(file_results).unwrap());
 
-    writer.flush()?;
+    printer.print()?;
 
     Ok(())
 }

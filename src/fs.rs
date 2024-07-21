@@ -1,22 +1,23 @@
 use ignore::{types::TypesBuilder, WalkBuilder};
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub fn walk_builder(
-    paths: &[PathBuf],
+    path: &Path,
     ignored_paths: &[PathBuf],
-    // TODO: add ftype filtering
-    //filetypes: &Vec<String>,
+    n_threads: usize,
+    respect_gitignore: bool,
 ) -> WalkBuilder {
+    let mut builder = WalkBuilder::new(path);
+
+    // ft-based filtering
     let mut types_builder = TypesBuilder::new();
     types_builder.add_defaults();
+    builder.types(types_builder.build().unwrap());
 
-    let mut walk_builder = WalkBuilder::new(&paths[0]);
-    for path in paths.iter().skip(1) {
-        walk_builder.add(path);
-    }
+    // path-based filtering
     let ignored_paths = ignored_paths.to_vec();
-    walk_builder.filter_entry(move |entry| {
+    builder.filter_entry(move |entry| {
         for ignore in ignored_paths.iter() {
             if entry.path() == ignore {
                 return false;
@@ -24,6 +25,10 @@ pub fn walk_builder(
         }
         true
     });
-    walk_builder.types(types_builder.build().unwrap());
-    walk_builder
+
+    // .gitignore filtering
+    builder.git_ignore(respect_gitignore);
+
+    builder.threads(n_threads);
+    builder
 }

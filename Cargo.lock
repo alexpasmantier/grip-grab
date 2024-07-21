@@ -217,6 +217,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "grab"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "crossbeam",
+ "grep",
+ "ignore",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "grep"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -293,17 +306,6 @@ dependencies = [
  "log",
  "memchr",
  "memmap2",
-]
-
-[[package]]
-name = "gripgrep"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "crossbeam",
- "grep",
- "ignore",
 ]
 
 [[package]]
