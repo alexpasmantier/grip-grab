@@ -1,11 +1,15 @@
 
 # Grip-grab 🧤
 
-A faster, more lightweight, ripgrep alternative.
+A somewhat faster, more lightweight, ripgrep-inspired alternative.
 
 ```sh
-❯ gg "regex_pattern" .
+❯ gg "\b(Read|Write)Half[^<]" tokio/src
 ```
+
+
+https://github.com/user-attachments/assets/bef374b0-6b71-408f-80e4-b43d388d6af5
+
 
 ## Installation
 ### Using Cargo
