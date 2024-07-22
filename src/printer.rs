@@ -137,7 +137,7 @@ impl Printer {
 
     fn reset_ansi_formatting(&mut self) -> Result<()> {
         self.buffer.reset()?;
-        writeln!(&mut self.buffer, "")?;
+        write!(&mut self.buffer, "")?;
         self.writer.print(&self.buffer)
     }
 }
