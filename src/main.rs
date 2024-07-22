@@ -63,6 +63,5 @@ pub fn main() -> anyhow::Result<()> {
         .for_each(|file_results| printer.write(file_results).unwrap());
 
     printer.print()?;
-
     Ok(())
 }
