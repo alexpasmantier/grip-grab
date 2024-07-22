@@ -131,7 +131,7 @@ impl Printer {
     }
 
     pub fn print(&mut self) -> Result<()> {
-        self.writer.print(&self.buffer)?;
+        self.buffer.flush()?;
         self.reset_ansi_formatting()
     }
 
