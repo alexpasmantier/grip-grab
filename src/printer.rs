@@ -131,12 +131,12 @@ impl Printer {
     }
 
     pub fn print(&mut self) -> Result<()> {
-        self.writer.print(&self.buffer);
+        self.writer.print(&self.buffer)?;
         self.reset_ansi_formatting()
     }
 
     fn reset_ansi_formatting(&mut self) -> Result<()> {
-        self.buffer.reset();
+        self.buffer.reset()?;
         self.write_newline_to_buffer()
     }
 }

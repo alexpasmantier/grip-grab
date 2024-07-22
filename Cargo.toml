@@ -1,6 +1,6 @@
 [package]
 name = "grip-grab"
-version = "0.2.8"
+version = "0.2.9"
 edition = "2021"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 license = "Apache-2.0"
