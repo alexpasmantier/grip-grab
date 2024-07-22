@@ -6,7 +6,7 @@ use clap::{ArgGroup, Parser};
 #[derive(Parser, Debug)]
 #[command(name = "grip-grab")]
 #[command(bin_name = "gg")]
-#[command(version, about = "A faster, more lightweight, ripgrep alternative.", long_about = None, arg_required_else_help=true)]
+#[command(version, about = "A somewhat faster, more lightweight, ripgrep-inspired alternative.", long_about = None, arg_required_else_help=true)]
 #[command(group(
     ArgGroup::new("pattern_group")
         .args(&["pattern", "patterns"])
@@ -29,9 +29,9 @@ pub struct Cli {
     #[clap(short = 'I', long)]
     pub ignore_paths: Vec<PathBuf>,
 
-    /// respect .gitignore when recursively walking directory
-    #[clap(short = 'G', long, default_value_t = true)]
-    pub respect_gitignore: bool,
+    /// disregard .gitignore rules when recursively walking directory (defaults to false)
+    #[clap(short = 'G', long, default_value_t = false)]
+    pub disregard_gitignore: bool,
 
     /// upper boundary for the number of results to expect (will panic if #results > max_results)
     #[clap(short = 'M', long, default_value_t = 1000)]
@@ -73,7 +73,7 @@ pub struct PostProcessedCli {
     pub ignored_paths: Vec<PathBuf>,
     pub max_results: usize,
     pub n_threads: usize,
-    pub respect_gitignore: bool,
+    pub disregard_gitignore: bool,
     pub multiline: bool,
     pub print_mode: PrintMode,
     pub absolute_paths: bool,
@@ -92,7 +92,7 @@ pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
         ignored_paths: utils::resolve_paths(cli.ignore_paths),
         max_results: cli.max_results,
         n_threads: cli.n_threads,
-        respect_gitignore: cli.respect_gitignore,
+        disregard_gitignore: cli.disregard_gitignore,
         multiline: cli.multiline,
         print_mode: if cli.json {
             PrintMode::Json

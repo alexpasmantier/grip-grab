@@ -29,7 +29,7 @@ source ~/.zshrc
 ```
 
 ```plaintext
-A faster, more lightweight, ripgrep alternative.
+A somewhat faster, more lightweight, ripgrep-inspired alternative.
 
 Usage: gg [OPTIONS] <PATTERN|--patterns <PATTERNS>> <PATH>
 
@@ -42,8 +42,8 @@ Options:
           you can specify multiple patterns using -e "pattern1" -e "pattern2" etc
   -I, --ignore-paths <IGNORE_PATHS>
           paths to ignore when recursively walking target directory
-  -G, --respect-gitignore
-          respect .gitignore when recursively walking directory
+  -G, --disregard-gitignore
+          disregard .gitignore rules when recursively walking directory (defaults to false)
   -M, --max-results <MAX_RESULTS>
           upper boundary for the number of results to expect (will panic if #results > max_results) [default: 1000]
   -T, --n-threads <N_THREADS>
