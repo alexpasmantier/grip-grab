@@ -20,6 +20,7 @@ cargo install grip-grab
 **NOTE:** if using zsh with the `git` plugin, you might need to unalias `gg` in order for grip-grab's `gg` to work:
 ```sh
 echo 'unalias gg' >> ~/.zshrc
+source ~/.zshrc
 ```
 
 ## Usage
