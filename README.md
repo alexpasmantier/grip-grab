@@ -1,7 +1,7 @@
 
 # Grip-grab 🧤
 
-A somewhat faster, more lightweight, ripgrep-inspired alternative.
+A circumstancially faster, more lightweight, ripgrep-inspired alternative.
 
 ```sh
 ❯ gg "\b(Read|Write)Half[^<]" tokio/src
@@ -110,3 +110,7 @@ Options:
 ❯ gg "for" . -f
 ```
 <img width="1057" alt="Screenshot 2024-07-21 at 16 29 27" src="https://github.com/user-attachments/assets/388ce171-9ff2-49c6-a7a6-aedc99516978">
+
+## Notes
+This lightweight utility is largely based on a couple of crates from the extraordinary [ripgrep](https://github.com/BurntSushi/ripgrep) tool.
+Its aim is to provide a minimal and lightweight version that can be easily integrated in other programs for search-related purproses.
