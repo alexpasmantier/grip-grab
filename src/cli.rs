@@ -1,29 +1,24 @@
 use std::path::PathBuf;
 
 use crate::{printer::PrintMode, utils};
-use clap::{ArgGroup, Parser};
+use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(name = "grip-grab")]
 #[command(bin_name = "gg")]
 #[command(version, about = "A somewhat faster, more lightweight, ripgrep-inspired alternative.", long_about = None, arg_required_else_help=true)]
-#[command(group(
-    ArgGroup::new("pattern_group")
-        .args(&["pattern", "patterns"])
-        .required(true)
-))]
 pub struct Cli {
     /// a regex pattern to search for
-    #[arg(index = 1, num_args = 0..=1, group = "pattern_group")]
+    #[arg(index = 1, num_args = 1, required_unless_present = "patterns")]
     pub pattern: Option<String>,
 
     /// you can specify multiple patterns using -e "pattern1" -e "pattern2" etc.
-    #[arg(short = 'e', long, group = "pattern_group")]
+    #[arg(short = 'e', long, required_unless_present = "pattern")]
     patterns: Vec<String>,
 
     /// path in which to search recursively
-    #[arg(index = 2)]
-    pub path: PathBuf,
+    #[arg(index = 2, num_args = 1)]
+    pub path: Option<PathBuf>,
 
     /// paths to ignore when recursively walking target directory
     #[clap(short = 'I', long)]
@@ -81,6 +76,8 @@ pub struct PostProcessedCli {
     pub filter_filetypes: Vec<String>,
 }
 
+const DEFAULT_PATH: &str = ".";
+
 pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
     Ok(PostProcessedCli {
         patterns: if !cli.patterns.is_empty() {
@@ -88,7 +85,7 @@ pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
         } else {
             vec![cli.pattern.unwrap()]
         },
-        path: utils::resolve_path(cli.path),
+        path: utils::resolve_path(cli.path.unwrap_or(PathBuf::from(DEFAULT_PATH))),
         ignored_paths: utils::resolve_paths(cli.ignore_paths),
         max_results: cli.max_results,
         n_threads: cli.n_threads,
