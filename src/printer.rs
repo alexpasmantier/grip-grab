@@ -44,6 +44,7 @@ pub struct ColorSpecs {
     paths: ColorSpec,
     line_numbers: ColorSpec,
     lines: ColorSpec,
+    matched: ColorSpec,
 }
 
 impl Default for ColorSpecs {
@@ -58,10 +59,13 @@ impl Default for ColorSpecs {
         line_numbers.set_fg(Some(Color::Yellow)).set_bold(true);
         let mut lines: ColorSpec = ColorSpec::new();
         lines.set_fg(Some(Color::White));
+        let mut matched: ColorSpec = ColorSpec::new();
+        matched.set_fg(Some(Color::Red)).set_bold(true);
         ColorSpecs {
             paths,
             line_numbers,
             lines,
+            matched,
         }
     }
 }
@@ -118,7 +122,23 @@ impl Printer {
                 .set_color(&self.config.color_specs.line_numbers)?;
             write!(&mut self.buffer, "{}:\t", result.line_number)?;
             self.buffer.set_color(&self.config.color_specs.lines)?;
-            write!(&mut self.buffer, "{}", result.line)
+            write!(
+                &mut self.buffer,
+                "{}",
+                result.line[..result.match_range.start].to_string()
+            )?;
+            self.buffer.set_color(&self.config.color_specs.matched)?;
+            write!(
+                &mut self.buffer,
+                "{}",
+                &result.line[result.match_range.start..result.match_range.end]
+            )?;
+            self.buffer.set_color(&self.config.color_specs.lines)?;
+            write!(
+                &mut self.buffer,
+                "{}",
+                &result.line[result.match_range.end..]
+            )
         })
     }
 
