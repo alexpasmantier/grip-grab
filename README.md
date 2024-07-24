@@ -8,7 +8,9 @@ A circumstancially faster, more lightweight, ripgrep-inspired alternative.
 ```
 
 
-https://github.com/user-attachments/assets/bef374b0-6b71-408f-80e4-b43d388d6af5
+
+https://github.com/user-attachments/assets/2c5ed221-77f4-4a75-9f1a-b96341f3313b
+
 
 
 ## Installation
@@ -69,48 +71,24 @@ Options:
 ## Examples
 ### Basic usage
 ```sh
-❯ gg "for" .
+❯ gg "\b(Read|Write)Half[^<]" tokio/src
 ```
-<img width="1382" alt="Screenshot 2024-07-21 at 16 21 25" src="https://github.com/user-attachments/assets/c3e9a74b-7d21-48dd-878f-2fb8e4de3eaf">
+<img width="1718" alt="Screenshot 2024-07-24 at 13 28 41" src="https://github.com/user-attachments/assets/8e6b7233-fa73-4a39-b3cd-113ebdf5487c">
+
 
 ### JSON output
 ```sh
-❯ gg "impl" . --json | jq
+❯ gg --json unsplit tokio/src | jq
 ```
-```json
-{
-  "path": "/somewhere/gg/src/search.rs",
-  "results": [
-    {
-      "line_number": 23,
-      "line": "impl fmt::Display for FileResults {\n"
-    },
-    {
-      "line_number": 33,
-      "line": "impl FileResults {\n"
-    },
-    {
-      "line_number": 43,
-      "line": "impl<'a> IntoIterator for &'a FileResults {\n"
-    }
-  ]
-}
-{
-  "path": "/somewhere/gg/src/printer.rs",
-  "results": [
-    {
-      "line_number": 17,
-      "line": "impl Printer {\n"
-    }
-  ]
-}
-```
+<img width="1696" alt="Screenshot 2024-07-24 at 13 25 29" src="https://github.com/user-attachments/assets/67d4e90a-9bd1-4808-a260-226007339a55">
+
+
 
 ### Filenames only
 ```sh
-❯ gg "for" . -f
+❯ gg -f "\b(Read|Write)Half[^<]" tokio/src
 ```
-<img width="1057" alt="Screenshot 2024-07-21 at 16 29 27" src="https://github.com/user-attachments/assets/388ce171-9ff2-49c6-a7a6-aedc99516978">
+<img width="1713" alt="Screenshot 2024-07-24 at 13 29 52" src="https://github.com/user-attachments/assets/9e5f5cee-218e-4213-bfeb-25df3d5a2a9e">
 
 ## Notes
 This lightweight utility is largely based on a couple of crates from the extraordinary [ripgrep](https://github.com/BurntSushi/ripgrep) tool.
