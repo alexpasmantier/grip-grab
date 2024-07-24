@@ -6,7 +6,6 @@ use grep::{
     regex::{RegexMatcher, RegexMatcherBuilder},
     searcher::{sinks::UTF8, Searcher, SearcherBuilder},
 };
-use serde::ser::{SerializeStruct, Serializer};
 use serde::Serialize;
 
 #[derive(Debug, Serialize, Clone)]
