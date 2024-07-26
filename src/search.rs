@@ -188,10 +188,6 @@ pub fn search_file<'a>(
 ) -> anyhow::Result<FileResults> {
     let mut partial_results: Vec<PartialSearchResult> = Vec::new();
 
-    // PERF: we could use search_file instead and handle IO ourselves
-    // this would allow us to:
-    // - search the file in parallel (chunking)
-    // - pre-allocate the results vector based on file size / number of lines
     searcher.search_path(
         &matcher,
         &path,
