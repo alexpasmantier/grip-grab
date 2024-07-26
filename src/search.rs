@@ -14,7 +14,7 @@ pub struct SearchResult {
     pub line: String,
     pub line_start: u64,
     pub line_end: u64,
-    pub match_range: MatchRange,
+    pub matches: Vec<MatchRange>,
 }
 
 #[derive(Serialize, Debug, Clone)]
@@ -175,37 +175,64 @@ impl<'a> IntoIterator for &'a FileResults {
     }
 }
 
+struct PartialSearchResult {
+    pub line_number: u64,
+    pub line: String,
+    pub m: MatchRange,
+}
+
 pub fn search_file<'a>(
     path: PathBuf,
     matcher: &RegexMatcher,
-    multiline: bool,
+    searcher: &mut Searcher,
 ) -> anyhow::Result<FileResults> {
-    let mut matches: Vec<SearchResult> = Vec::new();
+    let mut partial_results: Vec<PartialSearchResult> = Vec::new();
 
-    let mut searcher = build_searcher(multiline);
+    // PERF: we could use search_file instead and handle IO ourselves
+    // this would allow us to:
+    // - search the file in parallel (chunking)
+    // - pre-allocate the results vector based on file size / number of lines
     searcher.search_path(
         &matcher,
         &path,
-        UTF8(|lnum, line| match matcher.find(line.as_bytes()) {
-            Ok(Some(m)) => {
-                matches.push(SearchResult {
+        // TODO: use find_iter instead of find to find multiple matches per line
+        UTF8(|lnum, line| {
+            matcher.find_iter(line.as_bytes(), |m| {
+                partial_results.push(PartialSearchResult {
                     line_number: lnum,
                     line: line.to_string(),
-                    line_start: lnum,
-                    line_end: lnum + line.matches('\n').count() as u64 - 1,
-                    match_range: MatchRange::from_match(m),
+                    m: MatchRange::from_match(m),
                 });
-                Ok(true)
-            }
-            Ok(None) => Ok(false),
-            Err(err) => Err(err.into()),
+                true
+            })?;
+            Ok(true)
         }),
     )?;
 
-    Ok(FileResults {
-        path,
-        results: matches,
-    })
+    let mut results = vec![SearchResult {
+        line_number: partial_results[0].line_number,
+        line: partial_results[0].line.clone(),
+        line_start: partial_results[0].line_number,
+        line_end: partial_results[0].line_number,
+        matches: vec![partial_results[0].m.clone()],
+    }];
+    for partial_result in partial_results[1..].iter() {
+        let last_result = results.last_mut().unwrap();
+        if last_result.line_number != partial_result.line_number {
+            results.push(SearchResult {
+                line_number: partial_result.line_number,
+                line: partial_result.line.clone(),
+                line_start: partial_result.line_number,
+                line_end: partial_result.line_number,
+                matches: vec![partial_result.m.clone()],
+            });
+        } else {
+            last_result.matches.push(partial_result.m.clone());
+            last_result.line_end = partial_result.line_number;
+        }
+    }
+
+    Ok(FileResults { path, results })
 }
 
 pub fn build_matcher(patterns: &Vec<String>) -> anyhow::Result<RegexMatcher> {

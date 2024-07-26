@@ -3,6 +3,7 @@ use clap::Parser;
 use crossbeam::queue::ArrayQueue;
 use ignore::DirEntry;
 use printer::PrinterConfig;
+use search::build_searcher;
 
 use crate::cli::{process_cli_args, Cli};
 use crate::fs::walk_builder;
@@ -33,7 +34,8 @@ pub fn main() -> anyhow::Result<()> {
                 let file_type = entry.file_type().unwrap();
                 if !file_type.is_dir() {
                     let path = entry.path().to_path_buf();
-                    match search_file(path, &matcher, cli_args.multiline) {
+                    let mut searcher = build_searcher(cli_args.multiline);
+                    match search_file(path, &matcher, &mut searcher) {
                         Ok(file_results) => {
                             if !file_results.is_empty() {
                                 queue.push(file_results).unwrap();

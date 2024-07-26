@@ -121,28 +121,41 @@ impl Printer {
 
     fn write_colored_search_results(&mut self, results: Vec<SearchResult>) -> Result<()> {
         results.iter().try_for_each(|result| {
-            self.buffer
-                .set_color(&self.config.color_specs.line_numbers)?;
-            write!(&mut self.buffer, "{}:\t", result.line_number)?;
-            self.buffer.set_color(&self.config.color_specs.lines)?;
-            write!(
-                &mut self.buffer,
-                "{}",
-                result.line[..result.match_range.start].to_string()
-            )?;
-            self.buffer.set_color(&self.config.color_specs.matched)?;
-            write!(
-                &mut self.buffer,
-                "{}",
-                &result.line[result.match_range.start..result.match_range.end]
-            )?;
-            self.buffer.set_color(&self.config.color_specs.lines)?;
-            write!(
-                &mut self.buffer,
-                "{}",
-                &result.line[result.match_range.end..]
-            )
+            self.write_colored_line(result)?;
+            Ok(())
         })
+    }
+
+    fn write_colored_line(&mut self, result: &SearchResult) -> Result<()> {
+        self.buffer
+            .set_color(&self.config.color_specs.line_numbers)?;
+        write!(&mut self.buffer, "{}:\t", result.line_number)?;
+        self.write_colored_matches(result)
+    }
+
+    fn write_colored_matches(&mut self, result: &SearchResult) -> Result<()> {
+        self.buffer.set_color(&self.config.color_specs.lines)?;
+        let mut last_end_offset = 0;
+        result
+            .matches
+            .iter()
+            .try_for_each(|match_range| -> Result<()> {
+                write!(
+                    &mut self.buffer,
+                    "{}",
+                    &result.line[last_end_offset..match_range.start]
+                )?;
+                self.buffer.set_color(&self.config.color_specs.matched)?;
+                write!(
+                    &mut self.buffer,
+                    "{}",
+                    &result.line[match_range.start..match_range.end]
+                )?;
+                self.buffer.set_color(&self.config.color_specs.lines)?;
+                last_end_offset = match_range.end;
+                Ok(())
+            })?;
+        write!(&mut self.buffer, "{}", &result.line[last_end_offset..])
     }
 
     fn writeln_to_buffer(&mut self, text: String) -> Result<()> {
