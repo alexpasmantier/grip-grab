@@ -209,6 +209,12 @@ pub fn search_file<'a>(
         }),
     )?;
 
+    if partial_results.is_empty() {
+        return Ok(FileResults {
+            path,
+            results: Vec::new(),
+        });
+    }
     let mut results = vec![SearchResult {
         line_number: partial_results[0].line_number,
         line: partial_results[0].line.clone(),
