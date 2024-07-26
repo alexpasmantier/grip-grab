@@ -73,7 +73,7 @@ Options:
 ```sh
 ❯ gg "\b(Read|Write)Half[^<]" tokio/src
 ```
-<img width="1718" alt="Screenshot 2024-07-24 at 13 28 41" src="https://github.com/user-attachments/assets/8e6b7233-fa73-4a39-b3cd-113ebdf5487c">
+<img width="1973" alt="Screenshot 2024-07-26 at 14 00 31" src="https://github.com/user-attachments/assets/78d408a2-9f00-4c6d-95c0-6af6211ab40d">
 
 
 ### JSON output
