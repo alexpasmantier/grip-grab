@@ -1,5 +1,6 @@
 use std::{
     env::current_dir,
+    fmt,
     io::{Result, Write},
     path::{Path, PathBuf},
 };
@@ -116,7 +117,14 @@ impl Printer {
 
     fn write_colored_path(&mut self, path: &Path) -> Result<()> {
         self.buffer.set_color(&self.config.color_specs.paths)?;
-        writeln!(&mut self.buffer, "{}", path.to_string_lossy())
+        let path_str = path.to_string_lossy();
+        let link = Hyperlink {
+            uri: &format!("file://{}", path_str),
+            id: None,
+        };
+        writeln!(&mut self.buffer, "{link}{}{link:#}", path_str)
+
+        //writeln!(&mut self.buffer, "{}", path.to_string_lossy())
     }
 
     fn write_colored_search_results(&mut self, results: Vec<SearchResult>) -> Result<()> {
@@ -175,5 +183,32 @@ impl Printer {
         self.buffer.reset()?;
         write!(&mut self.buffer, "")?;
         self.writer.print(&self.buffer)
+    }
+}
+
+#[derive(Default, Debug, PartialEq, Clone)]
+pub struct Hyperlink<'a> {
+    // maybe this should use u8 to support non-utf encodings?
+    uri: &'a str,
+    id: Option<&'a str>,
+}
+
+const OSC8: &str = "\x1b]8";
+
+/// string terminator
+const ST: &str = "\x1b\\";
+
+impl fmt::Display for Hyperlink<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let url = self.uri;
+        if f.alternate() {
+            // based off of the cargo internal hyperlink behavior.
+            // if the alternate flag is specified, end the hyperlink.
+            write!(f, "{OSC8};;{ST}")
+        } else if let Some(id) = self.id {
+            write!(f, "{OSC8};id={id};{url}{ST}")
+        } else {
+            write!(f, "{OSC8};;{url}{ST}")
+        }
     }
 }
