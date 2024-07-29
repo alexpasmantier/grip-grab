@@ -24,7 +24,6 @@ pub struct Printer {
 
 pub struct PrinterConfig {
     pub mode: PrintMode,
-    // TODO: refactorize this
     pub colored_output: bool,
     pub color_specs: ColorSpecs,
     pub absolute_paths: bool,
@@ -89,19 +88,14 @@ impl Printer {
     }
 
     pub fn write(&mut self, results: FileResults) -> Result<()> {
-        let path: &Path;
-        if self.config.absolute_paths {
-            path = &results.path;
-        } else {
-            path = results.path.strip_prefix(self.cwd.clone()).unwrap();
-        }
+        //    path = results.path.strip_prefix(self.cwd.clone()).unwrap();
         match self.config.mode {
-            PrintMode::Text => self.write_colored_text_results(path, results.results),
+            PrintMode::Text => self.write_colored_text_results(&results.path, results.results),
             PrintMode::Json => self.writeln_to_buffer(serde_json::to_string(&FileResults {
-                path: path.to_path_buf(),
+                path: results.path.to_path_buf(),
                 results: results.results,
             })?),
-            PrintMode::Files => self.write_colored_path(path),
+            PrintMode::Files => self.write_colored_path(&results.path),
         }
     }
 
@@ -117,14 +111,17 @@ impl Printer {
 
     fn write_colored_path(&mut self, path: &Path) -> Result<()> {
         self.buffer.set_color(&self.config.color_specs.paths)?;
+        let display_path = if self.config.absolute_paths {
+            path.to_string_lossy()
+        } else {
+            path.strip_prefix(&self.cwd).unwrap().to_string_lossy()
+        };
         let path_str = path.to_string_lossy();
         let link = Hyperlink {
             uri: &format!("file://{}", path_str),
             id: None,
         };
-        writeln!(&mut self.buffer, "{link}{}{link:#}", path_str)
-
-        //writeln!(&mut self.buffer, "{}", path.to_string_lossy())
+        writeln!(&mut self.buffer, "{link}{}{link:#}", display_path)
     }
 
     fn write_colored_search_results(&mut self, results: Vec<SearchResult>) -> Result<()> {
