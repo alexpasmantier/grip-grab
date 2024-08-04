@@ -27,6 +27,7 @@ pub struct PrinterConfig {
     pub colored_output: bool,
     pub color_specs: ColorSpecs,
     pub absolute_paths: bool,
+    pub disable_hyperlinks: bool,
 }
 
 impl Default for PrinterConfig {
@@ -36,6 +37,7 @@ impl Default for PrinterConfig {
             colored_output: true,
             color_specs: ColorSpecs::default(),
             absolute_paths: false,
+            disable_hyperlinks: false,
         }
     }
 }
@@ -116,6 +118,9 @@ impl Printer {
         } else {
             path.strip_prefix(&self.cwd).unwrap().to_string_lossy()
         };
+        if self.config.disable_hyperlinks {
+            return writeln!(&mut self.buffer, "{}", display_path);
+        }
         let path_str = path.to_string_lossy();
         let link = Hyperlink {
             uri: &format!("file://{}", path_str),

@@ -57,6 +57,7 @@ pub fn main() -> anyhow::Result<()> {
         mode: cli_args.print_mode,
         absolute_paths: cli_args.absolute_paths,
         colored_output: cli_args.colored_output,
+        disable_hyperlinks: cli_args.disable_hyperlinks,
         ..Default::default()
     };
     let mut printer = Printer::new(printer_config);

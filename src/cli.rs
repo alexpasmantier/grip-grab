@@ -59,6 +59,10 @@ pub struct Cli {
     /// filter on filetype (defaults to all filetypes)
     #[clap(short = 't', long)]
     pub filter_filetypes: Vec<String>,
+
+    /// disable hyperlinks in output (defaults to false)
+    #[clap(short = 'H', long, default_value_t = false)]
+    pub disable_hyperlinks: bool,
 }
 
 #[derive(Debug)]
@@ -74,6 +78,7 @@ pub struct PostProcessedCli {
     pub absolute_paths: bool,
     pub colored_output: bool,
     pub filter_filetypes: Vec<String>,
+    pub disable_hyperlinks: bool,
 }
 
 const DEFAULT_PATH: &str = ".";
@@ -101,5 +106,6 @@ pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
         absolute_paths: cli.absolute_paths,
         colored_output: !cli.disable_colored_output,
         filter_filetypes: cli.filter_filetypes,
+        disable_hyperlinks: cli.disable_hyperlinks,
     })
 }

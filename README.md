@@ -62,6 +62,8 @@ Options:
           disable colored output (colored by default)
   -t, --filter-filetypes <FILTER_FILETYPES>
           filter on filetype (defaults to all filetypes)
+  -H, --disable-hyperlinks
+          disable hyperlinks in output (defaults to false)
   -h, --help
           Print help
   -V, --version
