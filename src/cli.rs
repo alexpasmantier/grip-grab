@@ -1,23 +1,24 @@
 use std::path::PathBuf;
 
 use crate::{printer::PrintMode, utils};
-use clap::Parser;
+use clap::{ArgGroup, Parser};
 
 #[derive(Parser, Debug)]
 #[command(name = "grip-grab")]
 #[command(bin_name = "gg")]
 #[command(version, about = "A somewhat faster, more lightweight, ripgrep-inspired alternative.", long_about = None, arg_required_else_help=true)]
+#[command(group(ArgGroup::new("pattern_group").args(&["pattern", "patterns"])))]
 pub struct Cli {
     /// a regex pattern to search for
-    #[arg(index = 1, num_args = 1, required_unless_present = "patterns")]
+    #[arg(num_args = 1, group = "pattern_group")]
     pub pattern: Option<String>,
 
     /// you can specify multiple patterns using -e "pattern1" -e "pattern2" etc.
-    #[arg(short = 'e', long, required_unless_present = "pattern")]
+    #[arg(short = 'e', long, group = "pattern_group", num_args = 1)]
     patterns: Vec<String>,
 
     /// path in which to search recursively
-    #[arg(index = 2, num_args = 1)]
+    #[arg(num_args = 1, last = true)]
     pub path: Option<PathBuf>,
 
     /// paths to ignore when recursively walking target directory
