@@ -115,8 +115,10 @@ impl Printer {
         self.buffer.set_color(&self.config.color_specs.paths)?;
         let display_path = if self.config.absolute_paths {
             path.to_string_lossy()
-        } else {
+        } else if path.starts_with(&self.cwd) {
             path.strip_prefix(&self.cwd).unwrap().to_string_lossy()
+        } else {
+            path.to_string_lossy()
         };
         if self.config.disable_hyperlinks {
             return writeln!(&mut self.buffer, "{}", display_path);

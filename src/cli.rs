@@ -1,24 +1,27 @@
 use std::path::PathBuf;
 
 use crate::{printer::PrintMode, utils};
-use clap::{ArgGroup, Parser};
+use clap::{ArgAction, Parser};
 
 #[derive(Parser, Debug)]
 #[command(name = "grip-grab")]
 #[command(bin_name = "gg")]
 #[command(version, about = "A somewhat faster, more lightweight, ripgrep-inspired alternative.", long_about = None, arg_required_else_help=true)]
-#[command(group(ArgGroup::new("pattern_group").args(&["pattern", "patterns"])))]
 pub struct Cli {
     /// a regex pattern to search for
-    #[arg(num_args = 1, group = "pattern_group")]
+    #[arg(num_args = 1)]
     pub pattern: Option<String>,
 
     /// you can specify multiple patterns using -e "pattern1" -e "pattern2" etc.
-    #[arg(short = 'e', long, group = "pattern_group", num_args = 1)]
+    #[arg(
+        short = 'e',
+        long,
+        action = ArgAction::Append
+    )]
     patterns: Vec<String>,
 
     /// path in which to search recursively
-    #[arg(num_args = 1, last = true)]
+    #[arg(num_args = 1)]
     pub path: Option<PathBuf>,
 
     /// paths to ignore when recursively walking target directory
@@ -66,6 +69,35 @@ pub struct Cli {
     pub disable_hyperlinks: bool,
 }
 
+impl Cli {
+    pub fn validate(&mut self) {
+        if self.patterns.is_empty() {
+            // If no patterns are provided using -e, the positional argument should be treated as a
+            // pattern
+            if self.pattern.is_none() {
+                eprintln!("error: the following required arguments were not provided: <PATTERN>");
+                std::process::exit(1);
+            }
+        } else if self.pattern.is_some() && self.path.is_some() {
+            // If patterns are provided using -e, and a pattern is provided as a positional argument
+            // as well as a path, we should invalidate the pattern
+            eprintln!(
+                "error: the argument '[PATTERN]' cannot be used with '--patterns <PATTERNS>'"
+            );
+            std::process::exit(1);
+        } else if self.pattern.is_some() {
+            // If patterns are provided using -e, the positional argument (if there is one) should be interpreted as
+            // a path
+            self.path = self.pattern.take().map(PathBuf::from);
+            self.pattern = None;
+        } else {
+            // If patterns are provided using -e and no positional arguments are provided, use
+            // default path
+            self.path = Some(PathBuf::from("."));
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct PostProcessedCli {
     pub patterns: Vec<String>,
@@ -84,7 +116,8 @@ pub struct PostProcessedCli {
 
 const DEFAULT_PATH: &str = ".";
 
-pub fn process_cli_args(cli: Cli) -> anyhow::Result<PostProcessedCli> {
+pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
+    cli.validate();
     Ok(PostProcessedCli {
         patterns: if !cli.patterns.is_empty() {
             cli.patterns

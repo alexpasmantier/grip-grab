@@ -1,3 +1,4 @@
+use anyhow::Result;
 use ignore::{types::TypesBuilder, WalkBuilder};
 
 use std::path::{Path, PathBuf};
@@ -14,6 +15,7 @@ pub fn walk_builder(
     // ft-based filtering
     let mut types_builder = TypesBuilder::new();
     types_builder.add_defaults();
+    add_custom_filetypes(&mut types_builder).unwrap();
     filter_filetypes.iter().for_each(|ft| {
         types_builder.select(ft);
     });
@@ -35,4 +37,8 @@ pub fn walk_builder(
 
     builder.threads(n_threads);
     builder
+}
+
+fn add_custom_filetypes(types_builder: &mut TypesBuilder) -> Result<()> {
+    Ok(types_builder.add("pystrict", "*.py")?)
 }
