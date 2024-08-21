@@ -111,6 +111,9 @@ pub struct PostProcessedCli {
 }
 
 pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
+    if cli.paths.is_empty() {
+        cli.paths.push(PathBuf::from(DEFAULT_PATH));
+    }
     cli.validate();
     Ok(PostProcessedCli {
         patterns: if !cli.patterns.is_empty() {
