@@ -21,8 +21,8 @@ pub struct Cli {
     patterns: Vec<String>,
 
     /// path in which to search recursively
-    #[arg(num_args = 1)]
-    pub path: Option<PathBuf>,
+    #[arg(num_args = 0..)]
+    pub paths: Vec<PathBuf>,
 
     /// paths to ignore when recursively walking target directory
     #[clap(short = 'I', long)]
@@ -69,6 +69,8 @@ pub struct Cli {
     pub disable_hyperlinks: bool,
 }
 
+const DEFAULT_PATH: &str = ".";
+
 impl Cli {
     pub fn validate(&mut self) {
         if self.patterns.is_empty() {
@@ -78,22 +80,16 @@ impl Cli {
                 eprintln!("error: the following required arguments were not provided: <PATTERN>");
                 std::process::exit(1);
             }
-        } else if self.pattern.is_some() && self.path.is_some() {
-            // If patterns are provided using -e, and a pattern is provided as a positional argument
-            // as well as a path, we should invalidate the pattern
-            eprintln!(
-                "error: the argument '[PATTERN]' cannot be used with '--patterns <PATTERNS>'"
-            );
-            std::process::exit(1);
         } else if self.pattern.is_some() {
-            // If patterns are provided using -e, the positional argument (if there is one) should be interpreted as
-            // a path
-            self.path = self.pattern.take().map(PathBuf::from);
+            // If patterns are provided using -e, the positional arguments (if there are any) should be interpreted as
+            // paths
+            self.paths
+                .push(PathBuf::from(self.pattern.clone().unwrap()));
             self.pattern = None;
         } else {
             // If patterns are provided using -e and no positional arguments are provided, use
             // default path
-            self.path = Some(PathBuf::from("."));
+            self.paths = vec![PathBuf::from(DEFAULT_PATH)];
         }
     }
 }
@@ -101,7 +97,7 @@ impl Cli {
 #[derive(Debug)]
 pub struct PostProcessedCli {
     pub patterns: Vec<String>,
-    pub path: PathBuf,
+    pub paths: Vec<PathBuf>,
     pub ignored_paths: Vec<PathBuf>,
     pub max_results: usize,
     pub n_threads: usize,
@@ -114,8 +110,6 @@ pub struct PostProcessedCli {
     pub disable_hyperlinks: bool,
 }
 
-const DEFAULT_PATH: &str = ".";
-
 pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
     cli.validate();
     Ok(PostProcessedCli {
@@ -124,7 +118,7 @@ pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
         } else {
             vec![cli.pattern.unwrap()]
         },
-        path: utils::resolve_path(cli.path.unwrap_or(PathBuf::from(DEFAULT_PATH))),
+        paths: utils::resolve_paths(cli.paths),
         ignored_paths: utils::resolve_paths(cli.ignore_paths),
         max_results: cli.max_results,
         n_threads: cli.n_threads,

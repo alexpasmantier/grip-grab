@@ -33,11 +33,11 @@ source ~/.zshrc
 ```plaintext
 A somewhat faster, more lightweight, ripgrep-inspired alternative.
 
-Usage: gg [OPTIONS] [PATTERN] [PATH]
+Usage: gg [OPTIONS] [PATTERN] [PATHS]...
 
 Arguments:
-  [PATTERN]  a regex pattern to search for
-  [PATH]     path in which to search recursively
+  [PATTERN]   a regex pattern to search for
+  [PATHS]...  paths in which to search recursively
 
 Options:
   -e, --patterns <PATTERNS>

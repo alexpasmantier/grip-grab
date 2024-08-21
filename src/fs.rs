@@ -4,13 +4,17 @@ use ignore::{types::TypesBuilder, WalkBuilder};
 use std::path::{Path, PathBuf};
 
 pub fn walk_builder(
-    path: &Path,
+    paths: Vec<&Path>,
     ignored_paths: &[PathBuf],
     n_threads: usize,
     respect_gitignore: bool,
     filter_filetypes: Vec<String>,
 ) -> WalkBuilder {
-    let mut builder = WalkBuilder::new(path);
+    let mut builder = WalkBuilder::new(paths[0]);
+    // add all paths to the builder
+    paths.iter().skip(1).for_each(|path| {
+        builder.add(*path);
+    });
 
     // ft-based filtering
     let mut types_builder = TypesBuilder::new();

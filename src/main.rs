@@ -22,7 +22,7 @@ pub fn main() -> anyhow::Result<()> {
 
     let matcher = build_matcher(&cli_args.patterns)?;
     let haystack_builder = walk_builder(
-        &cli_args.path,
+        cli_args.paths.iter().map(|p| p.as_path()).collect(),
         &cli_args.ignored_paths,
         cli_args.n_threads,
         !cli_args.disregard_gitignore,
