@@ -1,12 +1,13 @@
 use std::{
     env::current_dir,
     fmt,
-    io::{Result, Write},
+    io::{IsTerminal, Result, Write},
     path::{Path, PathBuf},
 };
 use termcolor::{Buffer, BufferWriter, Color, ColorChoice, ColorSpec, WriteColor};
 
 use crate::search::{FileResults, SearchResult};
+use std::io::stdout;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum PrintMode {
@@ -73,7 +74,12 @@ impl Default for ColorSpecs {
 }
 
 impl Printer {
-    pub fn new(config: PrinterConfig) -> Printer {
+    pub fn new(mut config: PrinterConfig) -> Printer {
+        let stdout = stdout();
+        if !stdout.is_terminal() {
+            config.disable_hyperlinks = true;
+            config.colored_output = false;
+        }
         let color_choice = if !config.colored_output || config.mode == PrintMode::Json {
             ColorChoice::Never
         } else {
