@@ -33,7 +33,7 @@ pub struct Cli {
     pub disregard_gitignore: bool,
 
     /// upper boundary for the number of results to expect (will panic if #results > max_results)
-    #[clap(short = 'M', long, default_value_t = 1000)]
+    #[clap(short = 'M', long, default_value_t = 5000)]
     pub max_results: usize,
 
     /// number of threads to use
