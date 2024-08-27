@@ -73,9 +73,12 @@ Options:
 ## Benchmarks
 **Warning**: _this is just a couple of comparisons on different sizes of codebases to get an idea of the big numbers but not in any way does this pretend to be a rigorous and scientific benchmarking exercise. The general idea it tries to convey is that while `rg` and `gg` should yield similar performances since they share the same core crates, `gg` still might be (marginally) faster circumstancially._
 ### The `curl` codebase (approx. half a milion lines)
+https://github.com/curl/curl
 <img width="786" alt="Screenshot 2024-08-27 at 22 31 13" src="https://github.com/user-attachments/assets/78344333-a56c-4955-8d22-60262c249027">
 
 ### The `tokio` codebase (approx. 160k lines)
+https://github.com/tokio-rs/tokio
+
 <img width="755" alt="Screenshot 2024-08-27 at 22 37 11" src="https://github.com/user-attachments/assets/fdb1c678-4446-4d6e-a85e-249cfd536b27">
 
 
