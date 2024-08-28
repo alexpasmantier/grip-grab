@@ -1,7 +1,7 @@
 
 # Grip-grab (gg) 🧤
 
-A circumstancially faster, more lightweight, ripgrep-inspired alternative.
+A circumstantially faster, more lightweight, ripgrep-inspired alternative.
 
 ```sh
 ❯ gg "\b(Read|Write)Half[^<]" tokio/src
