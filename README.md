@@ -72,14 +72,58 @@ Options:
 
 ## Benchmarks
 **Warning**: _this is just a couple of comparisons on different sizes of codebases to get an idea of the big numbers but not in any way does this pretend to be a rigorous and scientific benchmarking exercise. The general idea it tries to convey is that while `rg` and `gg` should yield similar performances since they share the same core crates, `gg` still might be (marginally) faster circumstancially._
+
+
+
 ### The `curl` codebase (approx. half a milion lines)
 https://github.com/curl/curl
-<img width="786" alt="Screenshot 2024-08-27 at 22 31 13" src="https://github.com/user-attachments/assets/78344333-a56c-4955-8d22-60262c249027">
+
+```sh
+hyperfine "rg '[A-Z]+_NOBODY' ." "gg '[A-Z]+_NOBODY'" "grep -rE '[A-Z]+_NOBODY' ."
+```
+```
+Benchmark 1: rg '[A-Z]+_NOBODY' .
+  Time (mean ± σ):      38.5 ms ±   2.2 ms    [User: 18.1 ms, System: 207.3 ms]
+  Range (min … max):    33.8 ms …  42.8 ms    72 runs
+
+Benchmark 2: gg '[A-Z]+_NOBODY'
+  Time (mean ± σ):      21.8 ms ±   0.8 ms    [User: 15.4 ms, System: 53.1 ms]
+  Range (min … max):    20.2 ms …  23.8 ms    115 runs
+
+Benchmark 3: ggrep -rE '[A-Z]+_NOBODY' .
+  Time (mean ± σ):      73.3 ms ±   0.9 ms    [User: 26.5 ms, System: 45.7 ms]
+  Range (min … max):    70.8 ms …  75.6 ms    41 runs
+
+Summary
+  gg '[A-Z]+_NOBODY' ran
+    1.77 ± 0.12 times faster than rg '[A-Z]+_NOBODY' .
+    3.36 ± 0.13 times faster than ggrep -rE '[A-Z]+_NOBODY' .
+```
 
 ### The `tokio` codebase (approx. 160k lines)
 https://github.com/tokio-rs/tokio
 
-<img width="755" alt="Screenshot 2024-08-27 at 22 37 11" src="https://github.com/user-attachments/assets/fdb1c678-4446-4d6e-a85e-249cfd536b27">
+```sh
+hyperfine "gg 'in<\w, W>'" "rg 'in<\w, W>'" "ggrep -r 'in<[[:alnum:]], W>'"
+```
+```
+Benchmark 1: gg 'in<\w, W>'
+  Time (mean ± σ):       9.6 ms ±   0.5 ms    [User: 6.3 ms, System: 9.2 ms]
+  Range (min … max):     9.0 ms …  11.5 ms    236 runs
+
+Benchmark 2: rg 'in<\w, W>'
+  Time (mean ± σ):      11.1 ms ±   0.7 ms    [User: 7.3 ms, System: 20.6 ms]
+  Range (min … max):     9.6 ms …  12.8 ms    216 runs
+
+Benchmark 3: ggrep -r 'in<[[:alnum:]], W>'
+  Time (mean ± σ):     442.0 ms ±   3.0 ms    [User: 348.6 ms, System: 92.5 ms]
+  Range (min … max):   439.0 ms … 446.1 ms    10 runs
+
+Summary
+  gg 'in<\w, W>' ran
+    1.15 ± 0.09 times faster than rg 'in<\w, W>'
+   46.02 ± 2.49 times faster than ggrep -r 'in<[[:alnum:]], W>'
+```
 
 
 ## Examples
