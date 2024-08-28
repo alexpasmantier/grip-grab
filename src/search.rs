@@ -191,7 +191,6 @@ pub fn search_file<'a>(
     searcher.search_path(
         &matcher,
         &path,
-        // TODO: use find_iter instead of find to find multiple matches per line
         UTF8(|lnum, line| {
             matcher.find_iter(line.as_bytes(), |m| {
                 partial_results.push(PartialSearchResult {
