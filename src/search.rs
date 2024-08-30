@@ -236,6 +236,36 @@ pub fn search_file<'a>(
     Ok(FileResults { path, results })
 }
 
+pub fn search_reader(
+    reader: impl std::io::BufRead,
+    matcher: &RegexMatcher,
+    searcher: &mut Searcher,
+) -> anyhow::Result<Vec<SearchResult>> {
+    let mut results = Vec::new();
+    let mut line_number = 0;
+    searcher.search_reader(
+        matcher,
+        reader,
+        UTF8(|lnum, line| {
+            line_number = lnum;
+            let mut matches = Vec::new();
+            matcher.find_iter(line.as_bytes(), |m| {
+                matches.push(MatchRange::from_match(m));
+                true
+            })?;
+            results.push(SearchResult {
+                line_number: lnum,
+                line: line.to_string(),
+                line_start: lnum,
+                line_end: lnum,
+                matches,
+            });
+            Ok(true)
+        }),
+    )?;
+    Ok(results)
+}
+
 pub fn build_matcher(patterns: &Vec<String>) -> anyhow::Result<RegexMatcher> {
     let builder = RegexMatcherBuilder::new();
     Ok(builder.build_many(patterns)?)
