@@ -71,10 +71,11 @@ Options:
 ```
 
 ## Benchmarks
-**Warning**: _this is just a couple of comparisons on different sizes of codebases to get an idea of the big numbers but not in any way does this pretend to be a rigorous and scientific benchmarking exercise. The general idea it tries to convey is that while `rg` and `gg` should yield similar performances since they share the same core crates, `gg` still might be (marginally) faster circumstancially._
 
-_[The following discussion with ripgrep's author on HackerNews](https://news.ycombinator.com/item?id=41380065) might also provide more insights regarding this tool's performance._
+### The general idea
+_With default settings for both tools, `gg` will typically be faster than `ripgrep` on small to moderatly sized codebases (<= a couple milion lines) running on everyday machines because of its default thread heuristic. `rg` will typically be faster out of the box on larger corpora (think a checkout of the linux kernel) and machines with more logical cpus. Note that you still can tweak `gg` with the `-T` argument to achieve similar performance in those cases._
 
+_[The following discussion with ripgrep's author on HackerNews](https://news.ycombinator.com/item?id=41380065) might also provide more insights regarding this tool's performance (including more benchmarks across different machines and corpora)._
 
 ### The `curl` codebase (approx. half a milion lines)
 https://github.com/curl/curl
