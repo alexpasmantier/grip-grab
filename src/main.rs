@@ -1,6 +1,9 @@
+use std::sync::Arc;
+
 use clap::Parser;
 
-use crossbeam::queue::ArrayQueue;
+use crossbeam::queue::SegQueue;
+use grep::regex::RegexMatcher;
 use ignore::DirEntry;
 use printer::PrinterConfig;
 use search::build_searcher;
@@ -18,9 +21,8 @@ mod utils;
 
 pub fn main() -> anyhow::Result<()> {
     let cli_args = process_cli_args(Cli::parse())?;
-    let queue: ArrayQueue<FileResults> = ArrayQueue::new(cli_args.max_results);
+    let queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
 
-    let matcher = build_matcher(&cli_args.patterns)?;
     let haystack_builder = walk_builder(
         cli_args.paths.iter().map(|p| p.as_path()).collect(),
         &cli_args.ignored_paths,
@@ -28,17 +30,20 @@ pub fn main() -> anyhow::Result<()> {
         !cli_args.disregard_gitignore,
         cli_args.filter_filetypes,
     );
+    let matcher: Arc<RegexMatcher> = Arc::new(build_matcher(&cli_args.patterns)?);
     haystack_builder.build_parallel().run(|| {
-        Box::new(|entry: Result<DirEntry, ignore::Error>| match entry {
+        let matcher = Arc::clone(&matcher);
+        let mut searcher = build_searcher(cli_args.multiline);
+        let queue = Arc::clone(&queue);
+        Box::new(move |entry: Result<DirEntry, ignore::Error>| match entry {
             Ok(entry) => {
                 let file_type = entry.file_type().unwrap();
                 if !file_type.is_dir() {
                     let path = entry.path().to_path_buf();
-                    let mut searcher = build_searcher(cli_args.multiline);
                     match search_file(path, &matcher, &mut searcher) {
                         Ok(file_results) => {
                             if !file_results.is_empty() {
-                                queue.push(file_results).unwrap();
+                                queue.push(file_results);
                             }
                         }
                         Err(_err) => (),
@@ -61,7 +66,8 @@ pub fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
     let mut printer = Printer::new(printer_config);
-    queue
+    let printer_queue = Arc::into_inner(queue).unwrap();
+    printer_queue
         .into_iter()
         .for_each(|file_results| printer.write(file_results).unwrap());
 
