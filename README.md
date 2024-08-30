@@ -1,5 +1,5 @@
 
-# Grip-grab (gg) 🧤
+# grip-grab (`gg`) 🧤
 
 A circumstantially faster, more lightweight, ripgrep-inspired alternative.
 
