@@ -73,6 +73,7 @@ Options:
 ## Benchmarks
 **Warning**: _this is just a couple of comparisons on different sizes of codebases to get an idea of the big numbers but not in any way does this pretend to be a rigorous and scientific benchmarking exercise. The general idea it tries to convey is that while `rg` and `gg` should yield similar performances since they share the same core crates, `gg` still might be (marginally) faster circumstancially._
 
+_[The following discussion with ripgrep's author on HackerNews](https://news.ycombinator.com/item?id=41380065) might also provide more insights regarding this tool's performance._
 
 
 ### The `curl` codebase (approx. half a milion lines)
@@ -124,6 +125,7 @@ Summary
     1.15 ± 0.09 times faster than rg 'in<\w, W>'
    46.02 ± 2.49 times faster than ggrep -r 'in<[[:alnum:]], W>'
 ```
+
 
 
 ## Examples
