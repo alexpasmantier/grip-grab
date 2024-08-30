@@ -32,10 +32,6 @@ pub struct Cli {
     #[clap(short = 'G', long, default_value_t = false)]
     pub disregard_gitignore: bool,
 
-    /// upper boundary for the number of results to expect (will panic if #results > max_results)
-    #[clap(short = 'M', long, default_value_t = 5000)]
-    pub max_results: usize,
-
     /// number of threads to use
     #[clap(short = 'T', long, default_value_t = 4)]
     pub n_threads: usize,
@@ -99,7 +95,6 @@ pub struct PostProcessedCli {
     pub patterns: Vec<String>,
     pub paths: Vec<PathBuf>,
     pub ignored_paths: Vec<PathBuf>,
-    pub max_results: usize,
     pub n_threads: usize,
     pub disregard_gitignore: bool,
     pub multiline: bool,
@@ -123,7 +118,6 @@ pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
         },
         paths: utils::resolve_paths(cli.paths),
         ignored_paths: utils::resolve_paths(cli.ignore_paths),
-        max_results: cli.max_results,
         n_threads: cli.n_threads,
         disregard_gitignore: cli.disregard_gitignore,
         multiline: cli.multiline,
