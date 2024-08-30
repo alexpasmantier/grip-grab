@@ -7,9 +7,7 @@ A circumstantially faster, more lightweight, ripgrep-inspired alternative.
 ❯ gg "\b(Read|Write)Half[^<]" tokio/src
 ```
 
-
-
-https://github.com/user-attachments/assets/2c5ed221-77f4-4a75-9f1a-b96341f3313b
+https://github.com/user-attachments/assets/0bce247c-7a03-4f62-a29f-51da3c6a54b8
 
 
 
