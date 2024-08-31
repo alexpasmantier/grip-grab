@@ -75,54 +75,76 @@ _With default settings for both tools, `gg` will typically be faster than `ripgr
 
 _[The following discussion with ripgrep's author on HackerNews](https://news.ycombinator.com/item?id=41380065) might also provide more insights regarding this tool's performance (including more benchmarks across different machines and corpora)._
 
+*NOTE*: _The following benchmarks were run on an M3 Macbook Pro with 16GB of RAM and 8 logical CPUs._
+
 ### The `curl` codebase (approx. half a milion lines)
 https://github.com/curl/curl
 
 ```sh
-hyperfine "rg '[A-Z]+_NOBODY' ." "gg '[A-Z]+_NOBODY'" "grep -rE '[A-Z]+_NOBODY' ."
+hyperfine -m 200 "gg '[A-Z]+_NOBODY' ." "rg '[A-Z]+_NOBODY' ." "grep -rE '[A-Z]+_NOBODY' ."
 ```
 ```
-Benchmark 1: rg '[A-Z]+_NOBODY' .
-  Time (mean ± σ):      38.5 ms ±   2.2 ms    [User: 18.1 ms, System: 207.3 ms]
-  Range (min … max):    33.8 ms …  42.8 ms    72 runs
+Benchmark 1: gg '[A-Z]+_NOBODY' .
+  Time (mean ± σ):      18.5 ms ±   0.7 ms    [User: 10.5 ms, System: 47.9 ms]
+  Range (min … max):    17.0 ms …  19.9 ms    200 runs
 
-Benchmark 2: gg '[A-Z]+_NOBODY'
-  Time (mean ± σ):      21.8 ms ±   0.8 ms    [User: 15.4 ms, System: 53.1 ms]
-  Range (min … max):    20.2 ms …  23.8 ms    115 runs
+Benchmark 2: rg '[A-Z]+_NOBODY' .
+  Time (mean ± σ):      37.0 ms ±   4.6 ms    [User: 15.1 ms, System: 201.0 ms]
+  Range (min … max):    23.3 ms …  60.5 ms    200 runs
 
-Benchmark 3: ggrep -rE '[A-Z]+_NOBODY' .
-  Time (mean ± σ):      73.3 ms ±   0.9 ms    [User: 26.5 ms, System: 45.7 ms]
-  Range (min … max):    70.8 ms …  75.6 ms    41 runs
+Benchmark 3: grep -rE '[A-Z]+_NOBODY' .
+  Time (mean ± σ):      68.5 ms ±   0.6 ms    [User: 27.2 ms, System: 40.4 ms]
+  Range (min … max):    64.6 ms …  70.4 ms    200 runs
 
 Summary
-  gg '[A-Z]+_NOBODY' ran
-    1.77 ± 0.12 times faster than rg '[A-Z]+_NOBODY' .
-    3.36 ± 0.13 times faster than ggrep -rE '[A-Z]+_NOBODY' .
+  gg '[A-Z]+_NOBODY' . ran
+    2.00 ± 0.26 times faster than rg '[A-Z]+_NOBODY' .
+    3.71 ± 0.14 times faster than grep -rE '[A-Z]+_NOBODY' .
 ```
 
 ### The `tokio` codebase (approx. 160k lines)
 https://github.com/tokio-rs/tokio
 
 ```sh
-hyperfine "gg 'in<\w, W>'" "rg 'in<\w, W>'" "ggrep -r 'in<[[:alnum:]], W>'"
+hyperfine -m 200 "gg 'in<\w, W>'" "rg 'in<\w, W>'" "ggrep -r 'in<[[:alnum:]], W>'"
 ```
 ```
 Benchmark 1: gg 'in<\w, W>'
-  Time (mean ± σ):       9.6 ms ±   0.5 ms    [User: 6.3 ms, System: 9.2 ms]
-  Range (min … max):     9.0 ms …  11.5 ms    236 runs
+  Time (mean ± σ):       7.4 ms ±   0.7 ms    [User: 4.5 ms, System: 6.8 ms]
+  Range (min … max):     6.0 ms …  10.3 ms    208 runs
 
 Benchmark 2: rg 'in<\w, W>'
-  Time (mean ± σ):      11.1 ms ±   0.7 ms    [User: 7.3 ms, System: 20.6 ms]
-  Range (min … max):     9.6 ms …  12.8 ms    216 runs
+  Time (mean ± σ):       8.8 ms ±   0.8 ms    [User: 5.9 ms, System: 16.5 ms]
+  Range (min … max):     6.7 ms …  10.7 ms    200 runs
 
 Benchmark 3: ggrep -r 'in<[[:alnum:]], W>'
-  Time (mean ± σ):     442.0 ms ±   3.0 ms    [User: 348.6 ms, System: 92.5 ms]
-  Range (min … max):   439.0 ms … 446.1 ms    10 runs
+  Time (mean ± σ):     118.3 ms ±   2.1 ms    [User: 100.8 ms, System: 16.5 ms]
+  Range (min … max):   114.3 ms … 127.4 ms    200 runs
 
 Summary
   gg 'in<\w, W>' ran
-    1.15 ± 0.09 times faster than rg 'in<\w, W>'
-   46.02 ± 2.49 times faster than ggrep -r 'in<[[:alnum:]], W>'
+    1.19 ± 0.15 times faster than rg 'in<\w, W>'
+   15.92 ± 1.54 times faster than ggrep -r 'in<[[:alnum:]], W>'
+```
+
+### The `neovim` codebase (approx. 1.3 milion lines)
+https://github.com/neovim/neovim
+
+```sh
+hyperfine --warmup 100 -m 200 "gg '[a-z]+_buf\b'" "rg '[a-z]+_buf\b'"
+```
+```
+Benchmark 1: gg '[a-z]+_buf\b'
+  Time (mean ± σ):      20.3 ms ±   0.7 ms    [User: 12.7 ms, System: 51.1 ms]
+  Range (min … max):    18.4 ms …  22.3 ms    200 runs
+
+Benchmark 2: rg '[a-z]+_buf\b'
+  Time (mean ± σ):      40.5 ms ±   4.8 ms    [User: 15.2 ms, System: 224.3 ms]
+  Range (min … max):    31.0 ms …  51.8 ms    200 runs
+
+Summary
+  gg '[a-z]+_buf\b' ran
+    1.99 ± 0.25 times faster than rg '[a-z]+_buf\b'
 ```
 
 
