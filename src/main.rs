@@ -1,10 +1,10 @@
-use std::io::IsTerminal;
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use clap::Parser;
 
 use crossbeam::queue::SegQueue;
+use fs::is_readable_stdin;
 use grep::regex::RegexMatcher;
 use ignore::DirEntry;
 use printer::PrinterConfig;
@@ -25,7 +25,7 @@ pub fn main() -> anyhow::Result<()> {
     let cli_args = process_cli_args(Cli::parse())?;
 
     let stdin = std::io::stdin();
-    if !stdin.is_terminal() {
+    if is_readable_stdin() {
         let matcher = build_matcher(&cli_args.patterns)?;
         let mut searcher = build_searcher(cli_args.multiline);
         match search_reader(stdin.lock(), &matcher, &mut searcher) {
