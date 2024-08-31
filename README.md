@@ -71,7 +71,7 @@ Options:
 ## Benchmarks
 
 ### The general idea
-_With default settings for both tools, `gg` will typically be faster than `ripgrep` on small to moderatly sized codebases (<= a couple milion lines) running on everyday machines because of its default thread heuristic. `rg` will typically be faster out of the box on larger corpora (think a checkout of the linux kernel) and machines with more logical cpus. Note that you still can tweak `gg` with the `-T` argument to achieve similar performance in those cases._
+_With default settings for both tools, `gg` will typically be faster than `rg` on small to moderatly sized codebases (<= a couple milion lines) running on everyday machines because of its default thread heuristic. `rg` will typically be faster out of the box on larger corpora (think a checkout of the linux kernel) and machines with more logical cpus. Note that you still can tweak `gg` with the `-T` argument to achieve similar performance in those cases._
 
 _[The following discussion with ripgrep's author on HackerNews](https://news.ycombinator.com/item?id=41380065) might also provide more insights regarding this tool's performance (including more benchmarks across different machines and corpora)._
 
@@ -81,7 +81,7 @@ _[The following discussion with ripgrep's author on HackerNews](https://news.yco
 https://github.com/curl/curl
 
 ```sh
-hyperfine -m 200 "gg '[A-Z]+_NOBODY' ." "rg '[A-Z]+_NOBODY' ." "grep -rE '[A-Z]+_NOBODY' ."
+hyperfine -m 200 "gg '[A-Z]+_NOBODY' ." "rg '[A-Z]+_NOBODY' ." "ggrep -rE '[A-Z]+_NOBODY' ."
 ```
 ```
 Benchmark 1: gg '[A-Z]+_NOBODY' .
@@ -92,14 +92,14 @@ Benchmark 2: rg '[A-Z]+_NOBODY' .
   Time (mean ± σ):      37.0 ms ±   4.6 ms    [User: 15.1 ms, System: 201.0 ms]
   Range (min … max):    23.3 ms …  60.5 ms    200 runs
 
-Benchmark 3: grep -rE '[A-Z]+_NOBODY' .
+Benchmark 3: ggrep -rE '[A-Z]+_NOBODY' .
   Time (mean ± σ):      68.5 ms ±   0.6 ms    [User: 27.2 ms, System: 40.4 ms]
   Range (min … max):    64.6 ms …  70.4 ms    200 runs
 
 Summary
   gg '[A-Z]+_NOBODY' . ran
     2.00 ± 0.26 times faster than rg '[A-Z]+_NOBODY' .
-    3.71 ± 0.14 times faster than grep -rE '[A-Z]+_NOBODY' .
+    3.71 ± 0.14 times faster than ggrep -rE '[A-Z]+_NOBODY' .
 ```
 
 ### The `tokio` codebase (approx. 160k lines)
@@ -131,20 +131,25 @@ Summary
 https://github.com/neovim/neovim
 
 ```sh
-hyperfine --warmup 100 -m 200 "gg '[a-z]+_buf\b'" "rg '[a-z]+_buf\b'"
+hyperfine --warmup 100 "gg '[a-z]+_buf\b'" "rg '[a-z]+_buf\b'" "ggrep -rE '[a-z]+_buf\b'"
 ```
 ```
 Benchmark 1: gg '[a-z]+_buf\b'
-  Time (mean ± σ):      20.3 ms ±   0.7 ms    [User: 12.7 ms, System: 51.1 ms]
-  Range (min … max):    18.4 ms …  22.3 ms    200 runs
+  Time (mean ± σ):      19.0 ms ±   1.2 ms    [User: 12.4 ms, System: 54.4 ms]
+  Range (min … max):    16.8 ms …  22.6 ms    113 runs
 
 Benchmark 2: rg '[a-z]+_buf\b'
-  Time (mean ± σ):      40.5 ms ±   4.8 ms    [User: 15.2 ms, System: 224.3 ms]
-  Range (min … max):    31.0 ms …  51.8 ms    200 runs
+  Time (mean ± σ):      36.0 ms ±   4.9 ms    [User: 14.8 ms, System: 200.5 ms]
+  Range (min … max):    23.9 ms …  46.2 ms    75 runs
+
+Benchmark 3: ggrep -rE '[a-z]+_buf\b'
+  Time (mean ± σ):      75.7 ms ±   0.9 ms    [User: 36.3 ms, System: 39.4 ms]
+  Range (min … max):    74.1 ms …  78.1 ms    36 runs
 
 Summary
   gg '[a-z]+_buf\b' ran
-    1.99 ± 0.25 times faster than rg '[a-z]+_buf\b'
+    1.89 ± 0.29 times faster than rg '[a-z]+_buf\b'
+    3.99 ± 0.26 times faster than ggrep -rE '[a-z]+_buf\b'
 ```
 
 
