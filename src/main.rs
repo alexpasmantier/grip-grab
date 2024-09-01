@@ -101,9 +101,10 @@ pub fn main() -> anyhow::Result<()> {
     };
     let mut printer = Printer::new(printer_config);
     let printer_queue = Arc::into_inner(queue).unwrap();
-    printer_queue
-        .into_iter()
-        .for_each(|file_results| printer.write(file_results).unwrap());
+    while !printer_queue.is_empty() {
+        let file_results = printer_queue.pop().unwrap();
+        printer.write(file_results)?;
+    }
 
     printer.print()?;
     Ok(())
