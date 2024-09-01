@@ -23,50 +23,6 @@ echo 'unalias gg' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-## Usage
-```sh
-❯ gg --help
-```
-
-```plaintext
-A somewhat faster, more lightweight, ripgrep-inspired alternative.
-
-Usage: gg [OPTIONS] [PATTERN] [PATHS]...
-
-Arguments:
-  [PATTERN]   a regex pattern to search for
-  [PATHS]...  paths in which to search recursively
-
-Options:
-  -e, --patterns <PATTERNS>
-          you can specify multiple patterns using -e "pattern1" -e "pattern2" etc
-  -I, --ignore-paths <IGNORE_PATHS>
-          paths to ignore when recursively walking target directory
-  -G, --disregard-gitignore
-          disregard .gitignore rules when recursively walking directory (defaults to false)
-  -M, --max-results <MAX_RESULTS>
-          upper boundary for the number of results to expect (will panic if #results > max_results) [default: 1000]
-  -T, --n-threads <N_THREADS>
-          number of threads to use [default: 4]
-  -U, --multiline
-          enable multiline matching
-      --json
-          output in JSON format
-  -f, --file-paths-only
-          output file paths only
-  -A, --absolute-paths
-          output absolute paths (defaults to relative)
-  -C, --disable-colored-output
-          disable colored output (colored by default)
-  -t, --filter-filetypes <FILTER_FILETYPES>
-          filter on filetype (defaults to all filetypes)
-  -H, --disable-hyperlinks
-          disable hyperlinks in output (defaults to false)
-  -h, --help
-          Print help
-  -V, --version
-          Print version
-```
 
 ## Benchmarks
 
@@ -151,6 +107,71 @@ Summary
     1.89 ± 0.29 times faster than rg '[a-z]+_buf\b'
     3.99 ± 0.26 times faster than ggrep -rE '[a-z]+_buf\b'
 ```
+
+## Usage
+```sh
+❯ gg --help
+```
+
+```plaintext
+A somewhat faster, more lightweight, ripgrep-inspired alternative.
+
+Usage: gg [OPTIONS] [PATTERN] [PATHS]... [COMMAND]
+
+Commands:
+  upgrade  Upgrade the crate to its latest version
+  help     Print this message or the help of the given subcommand(s)
+
+Arguments:
+  [PATTERN]   a regex pattern to search for
+  [PATHS]...  path in which to search recursively
+
+Options:
+  -e, --patterns <PATTERNS>
+          you can specify multiple patterns using -e "pattern1" -e "pattern2" etc
+  -I, --ignore-paths <IGNORE_PATHS>
+          paths to ignore when recursively walking target directory
+  -G, --disregard-gitignore
+          disregard .gitignore rules when recursively walking directory (defaults to false)
+  -T, --n-threads <N_THREADS>
+          number of threads to use [default: 4]
+  -U, --multiline
+          enable multiline matching
+      --json
+          output in JSON format
+  -f, --file-paths-only
+          output file paths only
+  -A, --absolute-paths
+          output absolute paths (defaults to relative)
+  -C, --disable-colored-output
+          disable colored output (colored by default)
+  -t, --filter-filetypes <FILTER_FILETYPES>
+          filter on filetype (defaults to all filetypes)
+  -H, --disable-hyperlinks
+          disable hyperlinks in output (defaults to false)
+  -h, --help
+          Print help
+  -V, --version
+          Print version
+```
+
+## Upgrading `gg`
+You may upgrade `gg` to its latest version by running:
+```sh
+gg upgrade
+```
+```
+Upgrade the crate to its latest version
+
+Usage: gg upgrade [OPTIONS]
+
+Options:
+  -f, --force  Optional flag for force upgrade
+  -h, --help   Print help
+```
+
+
+https://github.com/user-attachments/assets/8620a805-4b2a-498e-a0a0-e8b6835bc9cd
 
 
 
