@@ -4,26 +4,38 @@ use std::sync::Arc;
 
 use clap::Parser;
 
+use cli::Commands;
 use crossbeam::queue::SegQueue;
 use fs::is_readable_stdin;
 use grep::regex::RegexMatcher;
 use ignore::DirEntry;
 use printer::PrinterConfig;
 use search::{build_searcher, search_reader};
+use upgrade::upgrade_gg;
 
 use crate::cli::{process_cli_args, Cli};
 use crate::fs::walk_builder;
-use crate::printer::Printer;
+use crate::printer::ResultsPrinter;
 use crate::search::{build_matcher, search_file, FileResults};
 
 mod cli;
 mod fs;
 mod printer;
 mod search;
+mod upgrade;
 mod utils;
 
 pub fn main() -> anyhow::Result<()> {
     let cli_args = process_cli_args(Cli::parse())?;
+
+    if let Some(subcommand) = cli_args.sub_command {
+        match subcommand {
+            Commands::Upgrade { force } => {
+                upgrade_gg(force);
+                return Ok(());
+            }
+        }
+    }
 
     if is_readable_stdin() {
         let stdin = stdin();
@@ -40,7 +52,7 @@ pub fn main() -> anyhow::Result<()> {
                         disable_hyperlinks: cli_args.disable_hyperlinks,
                         ..Default::default()
                     };
-                    let mut printer = Printer::new(printer_config);
+                    let mut printer = ResultsPrinter::new(printer_config);
                     printer.write(FileResults {
                         path: PathBuf::from("stdin"),
                         results: search_results,
@@ -99,7 +111,7 @@ pub fn main() -> anyhow::Result<()> {
         disable_hyperlinks: cli_args.disable_hyperlinks,
         ..Default::default()
     };
-    let mut printer = Printer::new(printer_config);
+    let mut printer = ResultsPrinter::new(printer_config);
     let printer_queue = Arc::into_inner(queue).unwrap();
     while !printer_queue.is_empty() {
         let file_results = printer_queue.pop().unwrap();

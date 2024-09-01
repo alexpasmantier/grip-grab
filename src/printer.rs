@@ -16,7 +16,7 @@ pub enum PrintMode {
     Files,
 }
 
-pub struct Printer {
+pub struct ResultsPrinter {
     writer: BufferWriter,
     buffer: Buffer,
     config: PrinterConfig,
@@ -73,8 +73,8 @@ impl Default for ColorSpecs {
     }
 }
 
-impl Printer {
-    pub fn new(mut config: PrinterConfig) -> Printer {
+impl ResultsPrinter {
+    pub fn new(mut config: PrinterConfig) -> ResultsPrinter {
         let stdout = stdout();
         if !stdout.is_terminal() {
             config.disable_hyperlinks = true;
@@ -87,7 +87,7 @@ impl Printer {
         };
         let bufwriter = BufferWriter::stdout(color_choice);
         let buffer = bufwriter.buffer();
-        Printer {
+        ResultsPrinter {
             writer: bufwriter,
             buffer,
             config,

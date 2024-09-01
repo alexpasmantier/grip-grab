@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{printer::PrintMode, utils};
-use clap::{ArgAction, Parser};
+use clap::{ArgAction, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(name = "grip-grab")]
@@ -63,12 +63,29 @@ pub struct Cli {
     /// disable hyperlinks in output (defaults to false)
     #[clap(short = 'H', long, default_value_t = false)]
     pub disable_hyperlinks: bool,
+
+    /// Subcommands
+    #[clap(subcommand)]
+    pub sub_command: Option<Commands>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Upgrade the crate to its latest version
+    Upgrade {
+        /// Optional flag for force upgrade
+        #[arg(short, long, default_value_t = false)]
+        force: bool,
+    },
 }
 
 const DEFAULT_PATH: &str = ".";
 
 impl Cli {
     pub fn validate(&mut self) {
+        if self.sub_command.is_some() {
+            return;
+        }
         if self.patterns.is_empty() {
             // If no patterns are provided using -e, the positional argument should be treated as a
             // pattern
@@ -77,8 +94,8 @@ impl Cli {
                 std::process::exit(1);
             }
         } else if self.pattern.is_some() {
-            // If patterns are provided using -e, the positional arguments (if there are any) should be interpreted as
-            // paths
+            // If patterns are provided using -e and we have what seems to be an additional positional pattern,
+            // it should be interpreted as a path.
             self.paths
                 .push(PathBuf::from(self.pattern.clone().unwrap()));
             self.pattern = None;
@@ -103,13 +120,41 @@ pub struct PostProcessedCli {
     pub colored_output: bool,
     pub filter_filetypes: Vec<String>,
     pub disable_hyperlinks: bool,
+    pub sub_command: Option<Commands>,
+}
+
+impl Default for PostProcessedCli {
+    fn default() -> Self {
+        PostProcessedCli {
+            patterns: Vec::new(),
+            paths: Vec::new(),
+            ignored_paths: Vec::new(),
+            n_threads: 1,
+            disregard_gitignore: false,
+            multiline: false,
+            print_mode: PrintMode::Text,
+            absolute_paths: false,
+            colored_output: true,
+            filter_filetypes: Vec::new(),
+            disable_hyperlinks: false,
+            sub_command: None,
+        }
+    }
 }
 
 pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
+    cli.validate();
+
     if cli.paths.is_empty() {
         cli.paths.push(PathBuf::from(DEFAULT_PATH));
     }
-    cli.validate();
+
+    if let Some(Commands::Upgrade { force }) = cli.sub_command {
+        return Ok(PostProcessedCli {
+            sub_command: Some(Commands::Upgrade { force }),
+            ..Default::default()
+        });
+    }
     Ok(PostProcessedCli {
         patterns: if !cli.patterns.is_empty() {
             cli.patterns
@@ -132,5 +177,6 @@ pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
         colored_output: !cli.disable_colored_output,
         filter_filetypes: cli.filter_filetypes,
         disable_hyperlinks: cli.disable_hyperlinks,
+        sub_command: cli.sub_command,
     })
 }
