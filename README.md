@@ -58,6 +58,30 @@ Summary
     3.71 ± 0.14 times faster than ggrep -rE '[A-Z]+_NOBODY' .
 ```
 
+**Plaintext searches**
+```sh
+hyperfine -m 100 "gg 'test'" "rg 'test'" "ggrep -rE 'test'"
+```
+```
+Benchmark 1: gg 'test'
+  Time (mean ± σ):      22.3 ms ±   1.1 ms    [User: 16.5 ms, System: 51.0 ms]
+  Range (min … max):    20.4 ms …  27.7 ms    100 runs
+
+Benchmark 2: rg 'test'
+  Time (mean ± σ):      49.7 ms ±   2.7 ms    [User: 23.4 ms, System: 298.3 ms]
+  Range (min … max):    42.0 ms …  55.5 ms    100 runs
+
+Benchmark 3: ggrep -rE 'test'
+  Time (mean ± σ):      52.3 ms ±   0.9 ms    [User: 14.6 ms, System: 37.0 ms]
+  Range (min … max):    50.1 ms …  56.9 ms    100 runs
+
+Summary
+  gg 'test' ran
+    2.23 ± 0.16 times faster than rg 'test'
+    2.34 ± 0.12 times faster than ggrep -rE 'test'
+```
+
+
 ### The `tokio` codebase (approx. 160k lines)
 https://github.com/tokio-rs/tokio
 
@@ -83,6 +107,9 @@ Summary
    15.92 ± 1.54 times faster than ggrep -r 'in<[[:alnum:]], W>'
 ```
 
+**Plaintext searches**
+These typically take <5ms on the tokio repository which is too low to benchmark with a tool like hyperfine.
+
 ### The `neovim` codebase (approx. 1.3 milion lines)
 https://github.com/neovim/neovim
 
@@ -106,6 +133,29 @@ Summary
   gg '[a-z]+_buf\b' ran
     1.89 ± 0.29 times faster than rg '[a-z]+_buf\b'
     3.99 ± 0.26 times faster than ggrep -rE '[a-z]+_buf\b'
+```
+
+**Plaintext searches**
+```sh
+hyperfine --warmup 100 -m 100 "gg 'test'" "rg 'test'" "ggrep -rE 'test'"
+```
+```
+Benchmark 1: gg 'test'
+  Time (mean ± σ):      21.0 ms ±   0.8 ms    [User: 15.3 ms, System: 48.1 ms]
+  Range (min … max):    18.9 ms …  23.2 ms    114 runs
+
+Benchmark 2: rg 'test'
+  Time (mean ± σ):      42.4 ms ±   3.6 ms    [User: 19.5 ms, System: 253.3 ms]
+  Range (min … max):    34.9 ms …  63.4 ms    100 runs
+
+Benchmark 3: ggrep -rE 'test'
+  Time (mean ± σ):      65.3 ms ±   1.6 ms    [User: 27.8 ms, System: 36.7 ms]
+  Range (min … max):    63.2 ms …  78.4 ms    100 runs
+
+Summary
+  gg 'test' ran
+    2.02 ± 0.19 times faster than rg 'test'
+    3.11 ± 0.15 times faster than ggrep -rE 'test'
 ```
 
 ## Usage
