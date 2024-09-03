@@ -1,7 +1,7 @@
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
-    text::{Line, Span, Text},
+    text::{Line, Span},
     widgets::{
         block::{Position, Title},
         Block, BorderType, Borders, List, ListDirection, Paragraph,
@@ -76,23 +76,50 @@ pub fn ui(frame: &mut Frame, app: &App) {
         ))
         .style(Style::default());
 
-    let results_list = List::new(app.results.iter().map(|r| {
-        Line::from(vec![
+    let results_list = List::new(app.results_list.results.iter().map(|r| {
+        let mut last_match_end = 0;
+        let content_line_spans = r.matches.iter().map(|m| {
+            let line_text = &r.line;
+            let start = m.start;
+            let end = m.end;
+            let mut spans = vec![];
+            if start > last_match_end {
+                spans.push(Span::raw(&line_text[last_match_end..start]));
+            }
+            spans.push(Span::styled(
+                &line_text[start..end],
+                Style::default().fg(Color::Rgb(255, 150, 150)),
+            ));
+            last_match_end = end;
+            spans
+        });
+        let mut content_spans = content_line_spans.flatten().collect::<Vec<Span>>();
+        if last_match_end < r.line.len() {
+            content_spans.push(Span::raw(&r.line[last_match_end..]));
+        }
+        let mut line_spans = vec![
             Span::styled(r.path.to_string_lossy(), Style::default().blue()),
             Span::styled(
                 format!(":{}", r.line_number),
                 Style::default().fg(Color::Yellow),
             ),
             Span::raw(": "),
-            Span::styled(r.line.clone(), Style::default().fg(Color::Rgb(90, 90, 110))),
-        ])
+        ];
+        line_spans.extend(content_spans);
+        Line::from(line_spans)
     }))
     .style(Style::default().fg(Color::White))
-    .highlight_style(Style::default().fg(Color::Red))
-    //.highlight_symbol(">>")
+    .highlight_style(Style::default().bg(Color::Rgb(50, 50, 70)))
+    .highlight_symbol(">>")
     //.repeat_highlight_symbol(true)
     .direction(ListDirection::BottomToTop)
     .block(results_block);
+
+    frame.render_stateful_widget(
+        results_list,
+        left_chunks[0],
+        &mut app.results_list.state.clone(),
+    );
 
     // bottom left block: input field
     let input_block = Block::default()
@@ -127,11 +154,18 @@ pub fn ui(frame: &mut Frame, app: &App) {
     }
 
     // current file name
-    let result_title = if let Some(result) = &app.selected_result {
-        result.path.to_string_lossy().to_string()
+    let result_title: String;
+    if !app.results_list.results.is_empty() {
+        if let Some(selected_index) = app.results_list.state.selected() {
+            let index = selected_index % app.results_list.results.len();
+            let result = &app.results_list.results[index];
+            result_title = result.path.to_string_lossy().to_string()
+        } else {
+            result_title = "Nothing selected".to_string();
+        }
     } else {
-        "No file selected".to_string()
-    };
+        result_title = "No results".to_string();
+    }
     let preview_file_path = Paragraph::new(result_title)
         .block(
             Block::default()
@@ -156,7 +190,6 @@ pub fn ui(frame: &mut Frame, app: &App) {
         ))
         .style(Style::default());
 
-    frame.render_widget(results_list, left_chunks[0]);
     frame.render_widget(input, left_chunks[1]);
     frame.render_widget(preview_file_path, right_chunks[0]);
     frame.render_widget(preview_block, right_chunks[1]);

@@ -1,22 +1,59 @@
-use ratatui::crossterm::event::{Event, KeyCode, KeyEvent};
+use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
 use tui_input::backend::crossterm::EventHandler;
 
 use crate::app::{self, App};
 
 pub fn handle_key_event(key: KeyEvent, app: &mut App) {
-    match key.code {
-        KeyCode::Char('q') | KeyCode::Esc => {
+    match key {
+        KeyEvent {
+            code: KeyCode::Char('q') | KeyCode::Esc,
+            ..
+        } => {
             app.should_quit = true;
         }
-        KeyCode::Tab => {
+        KeyEvent {
+            code: KeyCode::Tab, ..
+        } => {
             app.next_block();
         }
-        KeyCode::BackTab => {
+        KeyEvent {
+            code: KeyCode::BackTab,
+            ..
+        } => {
             app.previous_block();
+        }
+        KeyEvent {
+            code: KeyCode::Char('k') | KeyCode::Up,
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            app.move_to_block_on_top();
+        }
+        KeyEvent {
+            code: KeyCode::Char('j') | KeyCode::Down,
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            app.move_to_block_below();
+        }
+        KeyEvent {
+            code: KeyCode::Char('h') | KeyCode::Left,
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            app.move_to_block_left();
+        }
+        KeyEvent {
+            code: KeyCode::Char('l') | KeyCode::Right,
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            app.move_to_block_right();
         }
         _ => {}
     }
+
     match app.current_block {
         app::CurrentBlock::Search => {
             handle_search_key_event(key, app);
@@ -40,9 +77,28 @@ fn handle_search_key_event(key: KeyEvent, app: &mut App) {
 
 fn handle_results_key_event(key: KeyEvent, app: &mut App) {
     match key.code {
-        KeyCode::Up | KeyCode::Char('k') => {}
-        KeyCode::Down | KeyCode::Char('j') => {}
+        KeyCode::Up | KeyCode::Char('k') => {
+            if let Some(selected_index) = app.results_list.state.selected() {
+                app.results_list
+                    .state
+                    .select(Some((selected_index + 1) % app.results_list.results.len()));
+            }
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            if let Some(selected_index) = app.results_list.state.selected() {
+                if selected_index == 0 {
+                    app.results_list
+                        .state
+                        .select(Some(app.results_list.results.len() - 1));
+                } else {
+                    app.results_list.state.select_previous();
+                }
+            }
+        }
         _ => {}
+    }
+    if app.results_list.state.selected().is_none() {
+        app.results_list.state.select_first();
     }
 }
 

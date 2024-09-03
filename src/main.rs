@@ -45,6 +45,7 @@ pub fn main() -> anyhow::Result<()> {
                 return Ok(());
             }
             Commands::Interactive => {
+                term::init_panic_hook();
                 let mut terminal = term::init()?;
                 let mut app = app::App::default();
                 let result = run_app(&mut terminal, &mut app, &cli_args)?;
@@ -182,7 +183,7 @@ fn search(
     Ok(())
 }
 
-const MIN_SEARCH_PATTERN_LEN: usize = 3;
+const MIN_SEARCH_PATTERN_LEN: usize = 2;
 
 fn run_app<B: Backend>(
     terminal: &mut Terminal<B>,
@@ -206,7 +207,7 @@ fn run_app<B: Backend>(
         }
 
         if app.pattern.value() != current_pattern {
-            app.results.clear();
+            app.results_list.results.clear();
             current_pattern = app.pattern.value().to_string();
             let target_paths = vec![app.target_path.clone()];
             if current_pattern.len() > MIN_SEARCH_PATTERN_LEN {
@@ -220,7 +221,8 @@ fn run_app<B: Backend>(
                 let queue = Arc::into_inner(arc_queue).unwrap();
                 while !queue.is_empty() {
                     let file_results = queue.pop().unwrap();
-                    app.results
+                    app.results_list
+                        .results
                         .append(&mut file_results_to_ui_results(file_results));
                 }
             }
