@@ -5,13 +5,16 @@ use tui_input::backend::crossterm::EventHandler;
 use crate::app::{self, App};
 
 pub fn handle_key_event(key: KeyEvent, app: &mut App) {
+    // global key bindings
     match key {
+        // quitting the app
         KeyEvent {
             code: KeyCode::Char('q') | KeyCode::Esc,
             ..
         } => {
             app.should_quit = true;
         }
+        // moving between blocks
         KeyEvent {
             code: KeyCode::Tab, ..
         } => {
@@ -51,9 +54,39 @@ pub fn handle_key_event(key: KeyEvent, app: &mut App) {
         } => {
             app.move_to_block_right();
         }
+        // moving between search results
+        KeyEvent {
+            code: KeyCode::Char('n'),
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            handle_results_key_event(
+                KeyEvent {
+                    code: KeyCode::Down,
+                    modifiers: KeyModifiers::NONE,
+                    ..key
+                },
+                app,
+            );
+        }
+        KeyEvent {
+            code: KeyCode::Char('p'),
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            handle_results_key_event(
+                KeyEvent {
+                    code: KeyCode::Up,
+                    modifiers: KeyModifiers::NONE,
+                    ..key
+                },
+                app,
+            );
+        }
         _ => {}
     }
 
+    // block specific key bindings
     match app.current_block {
         app::CurrentBlock::Search => {
             handle_search_key_event(key, app);
