@@ -8,6 +8,8 @@ use ratatui::{
     },
     Frame,
 };
+use std::io::BufRead;
+use syntect::{easy::HighlightFile, highlighting::ThemeSet, parsing::SyntaxSet};
 
 use crate::app::{self, App};
 
@@ -42,7 +44,7 @@ fn get_border_style(focused: bool) -> Style {
     }
 }
 
-pub fn ui(frame: &mut Frame, app: &App) {
+pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme_set: &ThemeSet) {
     let main_block = centered_rect(80, 80, frame.area());
 
     // split the main block into two vertical chunks
@@ -190,7 +192,43 @@ pub fn ui(frame: &mut Frame, app: &App) {
         ))
         .style(Style::default());
 
+    if !app.results_list.results.is_empty() {
+        if let Some(selected_index) = app.results_list.state.selected() {
+            let index = selected_index % app.results_list.results.len();
+            let result = &app.results_list.results[index];
+            let line_number = result.line_number;
+            let syntax = syntax_set
+                .find_syntax_by_extension(&result.path.to_string_lossy())
+                .unwrap();
+            let theme = &theme_set.themes["base16-ocean.dark"];
+            let mut highlighter = HighlightFile::new(
+                result.path.clone(),
+                &syntax_set,
+                &theme_set.themes["base16-ocean.dark"],
+            )
+            .unwrap();
+            // highlight the entire file (result.path)
+            let mut line = String::new();
+            let mut lines = Vec::new();
+            while highlighter.reader.read_line(&mut line).unwrap() > 0 {
+                {
+                    let line_spans = highlighter
+                        .highlight_lines
+                        .highlight_line(&line, &syntax_set) // Use the cloned line
+                        .unwrap();
+                    let highlighted_line = Line::from(line_spans);
+                    lines.push(highlighted_line);
+                }
+                line.clear(); // Clear the line after it's processed
+            }
+            let preview = Paragraph::new(lines)
+                .block(preview_block)
+                .alignment(Alignment::Left);
+
+            frame.render_widget(preview, right_chunks[1]);
+        }
+    }
+
     frame.render_widget(input, left_chunks[1]);
     frame.render_widget(preview_file_path, right_chunks[0]);
-    frame.render_widget(preview_block, right_chunks[1]);
 }

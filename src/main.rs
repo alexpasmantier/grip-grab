@@ -2,6 +2,7 @@ use std::io;
 use std::io::{stdin, Read};
 use std::path::PathBuf;
 use std::sync::Arc;
+use syntect::highlighting::ThemeSet;
 
 use app::file_results_to_ui_results;
 use clap::Parser;
@@ -12,6 +13,7 @@ use ignore::DirEntry;
 use ratatui::backend::Backend;
 use ratatui::crossterm::event::{self, Event};
 use ratatui::Terminal;
+use syntect::parsing::SyntaxSet;
 
 use crate::app::App;
 use crate::cli::cli::{process_cli_args, Cli, Commands, PostProcessedCli};
@@ -191,8 +193,10 @@ fn run_app<B: Backend>(
     cli_args: &PostProcessedCli,
 ) -> io::Result<bool> {
     let mut current_pattern = String::new();
+    let syntax_set = SyntaxSet::load_defaults_newlines();
+    let theme_set = ThemeSet::load_defaults();
     loop {
-        terminal.draw(|f| ui(f, app))?;
+        terminal.draw(|f| ui(f, app, &syntax_set, &theme_set))?;
 
         if let Event::Key(key) = event::read()? {
             if key.kind == event::KeyEventKind::Release {
@@ -226,6 +230,7 @@ fn run_app<B: Backend>(
                         .append(&mut file_results_to_ui_results(file_results));
                 }
             }
+            app.results_list.state.select(Some(0));
         }
     }
 }
