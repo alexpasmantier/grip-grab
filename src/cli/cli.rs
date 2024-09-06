@@ -1,5 +1,5 @@
 use crate::printer::printer::PrintMode;
-use crate::utils::utils::resolve_paths;
+use crate::utils::paths::resolve_paths;
 use std::path::PathBuf;
 
 use clap::{ArgAction, Parser, Subcommand};

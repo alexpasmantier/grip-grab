@@ -1,1 +1,2 @@
-pub mod utils;
+pub mod highlighting;
+pub mod paths;

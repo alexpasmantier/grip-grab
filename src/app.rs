@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use ratatui::widgets::ListState;
+use ratatui::widgets::{ListState, Paragraph};
 use tui_input::Input;
 
 use crate::cli::cli::DEFAULT_PATH;
@@ -55,12 +55,17 @@ impl Default for ResultsList {
     }
 }
 
+pub struct PreviewState {
+    pub scroll: (u16, u16),
+}
+
 pub struct App {
     pub target_path: PathBuf,
     pub pattern: Input,
     pub current_block: CurrentBlock,
     pub should_quit: bool,
     pub results_list: ResultsList,
+    pub preview_state: PreviewState,
 }
 
 impl App {
@@ -71,6 +76,7 @@ impl App {
             current_block: CurrentBlock::Search,
             should_quit: false,
             results_list: ResultsList::default(),
+            preview_state: PreviewState { scroll: (0, 0) },
         }
     }
 
@@ -168,6 +174,14 @@ impl App {
             _ => {}
         }
     }
+
+    pub fn scroll_preview_down(&mut self, offset: u16) {
+        self.preview_state.scroll.0 += offset;
+    }
+
+    pub fn scroll_preview_up(&mut self, offset: u16) {
+        self.preview_state.scroll.0 -= offset;
+    }
 }
 
 impl Default for App {
@@ -178,6 +192,7 @@ impl Default for App {
             current_block: CurrentBlock::Search,
             should_quit: false,
             results_list: ResultsList::default(),
+            preview_state: PreviewState { scroll: (0, 0) },
         }
     }
 }

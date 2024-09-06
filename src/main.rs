@@ -1,3 +1,4 @@
+use ratatui::style::Color;
 use std::io;
 use std::io::{stdin, Read};
 use std::path::PathBuf;
@@ -195,8 +196,9 @@ fn run_app<B: Backend>(
     let mut current_pattern = String::new();
     let syntax_set = SyntaxSet::load_defaults_newlines();
     let theme_set = ThemeSet::load_defaults();
+    let theme = &theme_set.themes["base16-eighties.dark"];
     loop {
-        terminal.draw(|f| ui(f, app, &syntax_set, &theme_set))?;
+        terminal.draw(|f| ui(f, app, &syntax_set, theme))?;
 
         if let Event::Key(key) = event::read()? {
             if key.kind == event::KeyEventKind::Release {

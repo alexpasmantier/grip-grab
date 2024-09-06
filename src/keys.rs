@@ -137,10 +137,18 @@ fn handle_results_key_event(key: KeyEvent, app: &mut App) {
 
 fn handle_preview_key_event(key: KeyEvent, app: &mut App) {
     match key.code {
-        KeyCode::Up | KeyCode::Char('k') => {}
-        KeyCode::Down | KeyCode::Char('j') => {}
-        KeyCode::Char('d') => {}
-        KeyCode::Char('u') => {}
+        KeyCode::Up | KeyCode::Char('k') => {
+            app.scroll_preview_up(1);
+        }
+        KeyCode::Down | KeyCode::Char('j') => {
+            app.scroll_preview_down(1);
+        }
+        KeyCode::Char('d') => {
+            app.scroll_preview_down(10);
+        }
+        KeyCode::Char('u') => {
+            app.scroll_preview_up(10);
+        }
         _ => {}
     }
 }

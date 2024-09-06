@@ -1,17 +1,22 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
     style::{Color, Style, Stylize},
-    text::{Line, Span},
+    text::{Line, Span, Text},
     widgets::{
         block::{Position, Title},
-        Block, BorderType, Borders, List, ListDirection, Paragraph,
+        Block, BorderType, Borders, List, ListDirection, Padding, Paragraph,
     },
     Frame,
 };
 use std::io::BufRead;
-use syntect::{easy::HighlightFile, highlighting::ThemeSet, parsing::SyntaxSet};
+use syntect::{
+    easy::HighlightFile,
+    highlighting::{self, Theme, ThemeSet},
+    parsing::SyntaxSet,
+};
 
 use crate::app::{self, App};
+use crate::utils::highlighting::{convert_syn_color_to_ratatui_color, convert_syn_line_to_line};
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
@@ -44,7 +49,7 @@ fn get_border_style(focused: bool) -> Style {
     }
 }
 
-pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme_set: &ThemeSet) {
+pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
     let main_block = centered_rect(80, 80, frame.area());
 
     // split the main block into two vertical chunks
@@ -168,7 +173,8 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme_set: &Them
     } else {
         result_title = "No results".to_string();
     }
-    let preview_file_path = Paragraph::new(result_title)
+    //let preview_file_path = Paragraph::new(result_title)
+    let preview_file_path = Paragraph::new(app.preview_state.scroll.0.to_string())
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -179,7 +185,13 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme_set: &Them
         .alignment(Alignment::Left);
 
     // file preview
-    let preview_block = Block::default()
+    let theme_bg = convert_syn_color_to_ratatui_color(
+        theme
+            .settings
+            .background
+            .unwrap_or(syntect::highlighting::Color::BLACK),
+    );
+    let preview_outer_block = Block::default()
         .title(
             Title::from(" Preview ")
                 .position(Position::Top)
@@ -192,40 +204,58 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme_set: &Them
         ))
         .style(Style::default());
 
+    let preview_inner_block = Block::default()
+        .style(Style::default().bg(theme_bg))
+        .padding(Padding {
+            top: 0,
+            right: 1,
+            bottom: 0,
+            left: 1,
+        });
+    let inner = preview_outer_block.inner(right_chunks[1]);
+    frame.render_widget(preview_outer_block, right_chunks[1]);
+
+    // maybe this should go into the run_app function and be cached somehow
     if !app.results_list.results.is_empty() {
         if let Some(selected_index) = app.results_list.state.selected() {
             let index = selected_index % app.results_list.results.len();
             let result = &app.results_list.results[index];
             let line_number = result.line_number;
-            let syntax = syntax_set
-                .find_syntax_by_extension(&result.path.to_string_lossy())
-                .unwrap();
-            let theme = &theme_set.themes["base16-ocean.dark"];
-            let mut highlighter = HighlightFile::new(
-                result.path.clone(),
-                &syntax_set,
-                &theme_set.themes["base16-ocean.dark"],
-            )
-            .unwrap();
-            // highlight the entire file (result.path)
+            let mut highlighter =
+                HighlightFile::new(result.path.clone(), &syntax_set, &theme).unwrap();
             let mut line = String::new();
-            let mut lines = Vec::new();
+            let mut syn_lines: Vec<Vec<(syntect::highlighting::Style, String)>> = Vec::new();
             while highlighter.reader.read_line(&mut line).unwrap() > 0 {
                 {
-                    let line_spans = highlighter
+                    let line_regions = highlighter
                         .highlight_lines
-                        .highlight_line(&line, &syntax_set) // Use the cloned line
+                        .highlight_line(&line, &syntax_set)
                         .unwrap();
-                    let highlighted_line = Line::from(line_spans);
-                    lines.push(highlighted_line);
-                }
-                line.clear(); // Clear the line after it's processed
-            }
-            let preview = Paragraph::new(lines)
-                .block(preview_block)
-                .alignment(Alignment::Left);
 
-            frame.render_widget(preview, right_chunks[1]);
+                    let mut cloned_regions = Vec::new();
+                    for region in line_regions.iter() {
+                        cloned_regions.push((region.0, region.1.to_owned()));
+                    }
+
+                    syn_lines.push(cloned_regions);
+                }
+                line.clear();
+            }
+
+            let preview_lines: Vec<Line> = syn_lines.iter().map(convert_syn_line_to_line).collect();
+            let preview_text = Text::from(preview_lines);
+            let scroll: u16 = (line_number as isize - (right_chunks[1].height as isize) / 2
+                + 1
+                + app.preview_state.scroll.0 as isize)
+                .max(0)
+                // add min to prevent overflow
+                .try_into()
+                .unwrap();
+            let preview_paragraph = Paragraph::new(preview_text)
+                .block(preview_inner_block)
+                .alignment(Alignment::Left)
+                .scroll((scroll, 0));
+            frame.render_widget(preview_paragraph, inner);
         }
     }
 
