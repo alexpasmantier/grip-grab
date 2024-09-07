@@ -1,5 +1,5 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Margin, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style, Stylize},
     text::{Line, Span, Text},
     widgets::{
@@ -8,15 +8,20 @@ use ratatui::{
     },
     Frame,
 };
-use std::io::BufRead;
+use std::{io::BufRead, str::FromStr};
 use syntect::{
     easy::HighlightFile,
-    highlighting::{self, Theme, ThemeSet},
+    highlighting::{Color as SyntectColor, Theme},
     parsing::SyntaxSet,
 };
 
-use crate::app::{self, App};
-use crate::utils::highlighting::{convert_syn_color_to_ratatui_color, convert_syn_line_to_line};
+use crate::utils::highlighting::convert_syn_region_to_span;
+use crate::{
+    app::{self, App},
+    utils::highlighting::convert_syn_color_to_ratatui_color,
+};
+
+use super::icons::{icon_for_file, File};
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
@@ -49,7 +54,7 @@ fn get_border_style(focused: bool) -> Style {
     }
 }
 
-pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
+pub fn ui(frame: &mut Frame, app: &mut App, syntax_set: &SyntaxSet, theme: &Theme) {
     let main_block = centered_rect(80, 80, frame.area());
 
     // split the main block into two vertical chunks
@@ -104,7 +109,16 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
         if last_match_end < r.line.len() {
             content_spans.push(Span::raw(&r.line[last_match_end..]));
         }
+        let file_icon = icon_for_file(&File::new(&r.path));
         let mut line_spans = vec![
+            Span::styled(
+                format!("{}{}", file_icon.icon, ' '),
+                Style::default()
+                    .fg(Color::from_str(file_icon.color).expect(
+                        format!("Error parsing hexadecimal color {}", file_icon.color).as_str(),
+                    ))
+                    .bold(),
+            ),
             Span::styled(r.path.to_string_lossy(), Style::default().blue()),
             Span::styled(
                 format!(":{}", r.line_number),
@@ -116,8 +130,9 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
         Line::from(line_spans)
     }))
     .style(Style::default().fg(Color::White))
-    .highlight_style(Style::default().bg(Color::Rgb(50, 50, 70)))
-    .highlight_symbol(">>")
+    // TODO: make these depend on theme
+    .highlight_style(Style::default().bg(Color::Rgb(50, 50, 50)))
+    .highlight_symbol("> ")
     //.repeat_highlight_symbol(true)
     .direction(ListDirection::BottomToTop)
     .block(results_block);
@@ -145,8 +160,8 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
     // input field
     let width = chunks[0].width.max(3) - 3; // keep 2 for borders and 1 for cursor
 
-    let scroll = app.pattern.visual_scroll(width as usize);
-    let input = Paragraph::new(app.pattern.value())
+    let scroll = app.input.visual_scroll(width as usize);
+    let input = Paragraph::new(app.input.value())
         .scroll((0, scroll as u16))
         .block(input_block);
 
@@ -154,7 +169,7 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
         // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
         frame.set_cursor_position((
             // Put cursor past the end of the input text
-            left_chunks[1].x + ((app.pattern.visual_cursor()).max(scroll) - scroll) as u16 + 1,
+            left_chunks[1].x + ((app.input.visual_cursor()).max(scroll) - scroll) as u16 + 1,
             // Move one line down, from the border to the input line
             left_chunks[1].y + 1,
         ))
@@ -173,8 +188,8 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
     } else {
         result_title = "No results".to_string();
     }
-    //let preview_file_path = Paragraph::new(result_title)
-    let preview_file_path = Paragraph::new(app.preview_state.scroll.0.to_string())
+    let preview_file_path = Paragraph::new(result_title)
+        //let preview_file_path = Paragraph::new(app.preview_state.scroll.0.to_string())
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -185,12 +200,6 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
         .alignment(Alignment::Left);
 
     // file preview
-    let theme_bg = convert_syn_color_to_ratatui_color(
-        theme
-            .settings
-            .background
-            .unwrap_or(syntect::highlighting::Color::BLACK),
-    );
     let preview_outer_block = Block::default()
         .title(
             Title::from(" Preview ")
@@ -204,15 +213,14 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
         ))
         .style(Style::default());
 
-    let preview_inner_block = Block::default()
-        .style(Style::default().bg(theme_bg))
-        .padding(Padding {
-            top: 0,
-            right: 1,
-            bottom: 0,
-            left: 1,
-        });
+    let preview_inner_block = Block::default().style(Style::default()).padding(Padding {
+        top: 0,
+        right: 1,
+        bottom: 0,
+        left: 1,
+    });
     let inner = preview_outer_block.inner(right_chunks[1]);
+    app.preview_pane_height = inner.height;
     frame.render_widget(preview_outer_block, right_chunks[1]);
 
     // maybe this should go into the run_app function and be cached somehow
@@ -242,19 +250,57 @@ pub fn ui(frame: &mut Frame, app: &App, syntax_set: &SyntaxSet, theme: &Theme) {
                 line.clear();
             }
 
-            let preview_lines: Vec<Line> = syn_lines.iter().map(convert_syn_line_to_line).collect();
+            let theme_gutter_fg = theme.settings.gutter_foreground.unwrap_or(SyntectColor {
+                r: 70,
+                g: 70,
+                b: 70,
+                a: 255,
+            });
+
+            let preview_lines: Vec<Line> = syn_lines
+                .iter()
+                .enumerate()
+                .map(|(i, l)| {
+                    let line_number_with_style = Span::styled(
+                        format!("{:5} ", i + 1),
+                        Style::default().fg(if i == line_number - 1 {
+                            Color::Rgb(255, 150, 150)
+                        } else {
+                            convert_syn_color_to_ratatui_color(theme_gutter_fg)
+                        }),
+                    );
+                    Line::from_iter(
+                        std::iter::once(line_number_with_style)
+                            .chain(std::iter::once(Span::styled(
+                                " │ ",
+                                Style::default()
+                                    .fg(convert_syn_color_to_ratatui_color(theme_gutter_fg))
+                                    .dim(),
+                            )))
+                            .chain(l.iter().cloned().map(|sr| {
+                                convert_syn_region_to_span(
+                                    sr,
+                                    if i == line_number - 1 {
+                                        Some(SyntectColor {
+                                            r: 50,
+                                            g: 50,
+                                            b: 50,
+                                            a: 255,
+                                        })
+                                    } else {
+                                        None
+                                    },
+                                )
+                            })),
+                    )
+                })
+                .collect();
             let preview_text = Text::from(preview_lines);
-            let scroll: u16 = (line_number as isize - (right_chunks[1].height as isize) / 2
-                + 1
-                + app.preview_state.scroll.0 as isize)
-                .max(0)
-                // add min to prevent overflow
-                .try_into()
-                .unwrap();
+
             let preview_paragraph = Paragraph::new(preview_text)
                 .block(preview_inner_block)
                 .alignment(Alignment::Left)
-                .scroll((scroll, 0));
+                .scroll(app.preview_state.scroll);
             frame.render_widget(preview_paragraph, inner);
         }
     }

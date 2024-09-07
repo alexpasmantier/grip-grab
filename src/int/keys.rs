@@ -1,6 +1,6 @@
 use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
-use tui_input::backend::crossterm::EventHandler;
+use crate::int::input::backend::EventHandler;
 
 use crate::app::{self, App};
 
@@ -83,6 +83,35 @@ pub fn handle_key_event(key: KeyEvent, app: &mut App) {
                 app,
             );
         }
+        // scrolling preview
+        KeyEvent {
+            code: KeyCode::Char('d'),
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            handle_preview_key_event(
+                KeyEvent {
+                    code: KeyCode::Char('d'),
+                    modifiers: KeyModifiers::NONE,
+                    ..key
+                },
+                app,
+            );
+        }
+        KeyEvent {
+            code: KeyCode::Char('u'),
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        } => {
+            handle_preview_key_event(
+                KeyEvent {
+                    code: KeyCode::Char('u'),
+                    modifiers: KeyModifiers::NONE,
+                    ..key
+                },
+                app,
+            );
+        }
         _ => {}
     }
 
@@ -103,21 +132,29 @@ pub fn handle_key_event(key: KeyEvent, app: &mut App) {
 fn handle_search_key_event(key: KeyEvent, app: &mut App) {
     match key.code {
         _ => {
-            app.pattern.handle_event(&Event::Key(key));
+            app.input.handle_event(&Event::Key(key));
         }
     }
 }
 
 fn handle_results_key_event(key: KeyEvent, app: &mut App) {
-    match key.code {
-        KeyCode::Up | KeyCode::Char('k') => {
+    match key {
+        KeyEvent {
+            code: KeyCode::Up | KeyCode::Char('k'),
+            modifiers: KeyModifiers::NONE,
+            ..
+        } => {
             if let Some(selected_index) = app.results_list.state.selected() {
                 app.results_list
                     .state
                     .select(Some((selected_index + 1) % app.results_list.results.len()));
             }
         }
-        KeyCode::Down | KeyCode::Char('j') => {
+        KeyEvent {
+            code: KeyCode::Down | KeyCode::Char('j'),
+            modifiers: KeyModifiers::NONE,
+            ..
+        } => {
             if let Some(selected_index) = app.results_list.state.selected() {
                 if selected_index == 0 {
                     app.results_list
@@ -136,18 +173,34 @@ fn handle_results_key_event(key: KeyEvent, app: &mut App) {
 }
 
 fn handle_preview_key_event(key: KeyEvent, app: &mut App) {
-    match key.code {
-        KeyCode::Up | KeyCode::Char('k') => {
+    match key {
+        KeyEvent {
+            code: KeyCode::Up | KeyCode::Char('k'),
+            modifiers: KeyModifiers::NONE,
+            ..
+        } => {
             app.scroll_preview_up(1);
         }
-        KeyCode::Down | KeyCode::Char('j') => {
+        KeyEvent {
+            code: KeyCode::Down | KeyCode::Char('j'),
+            modifiers: KeyModifiers::NONE,
+            ..
+        } => {
             app.scroll_preview_down(1);
         }
-        KeyCode::Char('d') => {
-            app.scroll_preview_down(10);
+        KeyEvent {
+            code: KeyCode::Char('d'),
+            modifiers: KeyModifiers::NONE,
+            ..
+        } => {
+            app.scroll_preview_down(20);
         }
-        KeyCode::Char('u') => {
-            app.scroll_preview_up(10);
+        KeyEvent {
+            code: KeyCode::Char('u'),
+            modifiers: KeyModifiers::NONE,
+            ..
+        } => {
+            app.scroll_preview_up(20);
         }
         _ => {}
     }

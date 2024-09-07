@@ -1,0 +1,7 @@
+- [ ] async searching for results and displaying them in the UI
+- [ ] capping the number of results displayed in the UI
+- [ ] displaying the current number of results found
+- [ ] scrolling problems (seems like the arithmetics are off)
+- [ ] fuzzy search (other tool?)
+- [x] navigation shortcuts for preview while in other panes
+- [ ] converting between syntec colors and ratatui colors for theme specification

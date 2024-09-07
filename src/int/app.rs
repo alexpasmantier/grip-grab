@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::u16;
 
-use ratatui::widgets::{ListState, Paragraph};
-use tui_input::Input;
+use ratatui::widgets::ListState;
+use syntect::highlighting::Style;
 
 use crate::cli::cli::DEFAULT_PATH;
+use crate::int::input::Input;
 use crate::search::search::{FileResults, MatchRange, SearchResult};
 
 #[derive(Clone, Copy, PartialEq)]
@@ -55,31 +58,50 @@ impl Default for ResultsList {
     }
 }
 
+#[derive(Clone)]
 pub struct PreviewState {
     pub scroll: (u16, u16),
+    pub file_name: Option<String>,
+    pub file_type: Option<String>,
+    pub highlighted_lines: Vec<Vec<(Style, String)>>,
 }
 
 pub struct App {
     pub target_path: PathBuf,
-    pub pattern: Input,
+    pub input: Input,
+    pub pattern: String,
     pub current_block: CurrentBlock,
     pub should_quit: bool,
     pub results_list: ResultsList,
     pub preview_state: PreviewState,
+    pub preview_cache: HashMap<PathBuf, Vec<Vec<(Style, String)>>>,
+    pub preview_pane_height: u16,
+    pub selected_result: Option<Result>,
 }
 
-impl App {
-    pub fn new(target_path: PathBuf, current_pattern: String) -> Self {
+impl Default for App {
+    fn default() -> Self {
         Self {
-            target_path,
-            pattern: Input::new(current_pattern),
+            target_path: PathBuf::from(DEFAULT_PATH),
+            input: Input::new(String::new()),
+            pattern: String::new(),
             current_block: CurrentBlock::Search,
             should_quit: false,
             results_list: ResultsList::default(),
-            preview_state: PreviewState { scroll: (0, 0) },
+            preview_state: PreviewState {
+                scroll: (0, 0),
+                file_name: None,
+                file_type: None,
+                highlighted_lines: Vec::new(),
+            },
+            preview_cache: HashMap::new(),
+            preview_pane_height: 0,
+            selected_result: None,
         }
     }
+}
 
+impl App {
     fn get_current_block_index(&self) -> usize {
         BLOCKS
             .iter()
@@ -175,24 +197,24 @@ impl App {
         }
     }
 
+    pub fn compute_highlights_for_selected(&mut self) {
+        todo!()
+    }
+
     pub fn scroll_preview_down(&mut self, offset: u16) {
-        self.preview_state.scroll.0 += offset;
+        self.preview_state.scroll.0 = self.preview_state.scroll.0.saturating_add(offset).min(
+            (self.preview_state.highlighted_lines.len() as isize
+                - (2 * self.preview_pane_height / 3) as isize)
+                .max(0) as u16,
+        );
     }
 
+    // TODO: same thing as above
     pub fn scroll_preview_up(&mut self, offset: u16) {
-        self.preview_state.scroll.0 -= offset;
+        self.preview_state.scroll.0 = self.preview_state.scroll.0.saturating_sub(offset);
     }
-}
 
-impl Default for App {
-    fn default() -> Self {
-        Self {
-            target_path: PathBuf::from(DEFAULT_PATH),
-            pattern: Input::new(String::new()),
-            current_block: CurrentBlock::Search,
-            should_quit: false,
-            results_list: ResultsList::default(),
-            preview_state: PreviewState { scroll: (0, 0) },
-        }
+    pub fn reset_preview_scroll(&mut self) {
+        self.preview_state.scroll = (0, 0);
     }
 }

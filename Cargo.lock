@@ -515,13 +515,14 @@ dependencies = [
  "crossbeam",
  "grep",
  "ignore",
+ "lazy_static",
  "ratatui 0.28.1",
  "serde",
  "serde_json",
  "syntect",
  "syntect-tui",
  "termcolor",
- "tui-input",
+ "unicode-width",
 ]
 
 [[package]]
@@ -602,6 +603,12 @@ name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
+
+[[package]]
+name = "lazy_static"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
@@ -1138,16 +1145,6 @@ checksum = "3f252a68540fde3a3877aeea552b832b40ab9a69e318efd078774a01ddee1ccf"
 dependencies = [
  "num-conv",
  "time-core",
-]
-
-[[package]]
-name = "tui-input"
-version = "0.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd137780d743c103a391e06fe952487f914b299a4fe2c3626677f6a6339a7c6b"
-dependencies = [
- "ratatui 0.28.1",
- "unicode-width",
 ]
 
 [[package]]

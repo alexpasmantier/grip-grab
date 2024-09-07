@@ -1,4 +1,4 @@
-use ratatui::style::Color;
+use int::app::App;
 use std::io;
 use std::io::{stdin, Read};
 use std::path::PathBuf;
@@ -16,25 +16,20 @@ use ratatui::crossterm::event::{self, Event};
 use ratatui::Terminal;
 use syntect::parsing::SyntaxSet;
 
-use crate::app::App;
 use crate::cli::cli::{process_cli_args, Cli, Commands, PostProcessedCli};
 use crate::fs::fs::{is_readable_stdin, walk_builder};
-use crate::keys::handle_key_event;
+use crate::int::{app, keys::handle_key_event, term, ui::ui};
 use crate::printer::printer::{PrinterConfig, ResultsPrinter};
 use crate::search::search::{
     build_matcher, build_searcher, search_file, search_reader, FileResults,
 };
-use crate::ui::ui;
 use crate::upgrade::upgrade::upgrade_gg;
 
-mod app;
 mod cli;
 mod fs;
-mod keys;
+mod int;
 mod printer;
 mod search;
-mod term;
-mod ui;
 mod upgrade;
 mod utils;
 
@@ -51,7 +46,7 @@ pub fn main() -> anyhow::Result<()> {
                 term::init_panic_hook();
                 let mut terminal = term::init()?;
                 let mut app = app::App::default();
-                let result = run_app(&mut terminal, &mut app, &cli_args)?;
+                let _ = run_app(&mut terminal, &mut app, &cli_args)?;
                 term::restore()?;
                 return Ok(());
             }
@@ -193,7 +188,6 @@ fn run_app<B: Backend>(
     app: &mut App,
     cli_args: &PostProcessedCli,
 ) -> io::Result<bool> {
-    let mut current_pattern = String::new();
     let syntax_set = SyntaxSet::load_defaults_newlines();
     let theme_set = ThemeSet::load_defaults();
     let theme = &theme_set.themes["base16-eighties.dark"];
@@ -212,27 +206,46 @@ fn run_app<B: Backend>(
             return Ok(true);
         }
 
-        if app.pattern.value() != current_pattern {
+        if app.input.value() != app.pattern && app.input.value().len() > MIN_SEARCH_PATTERN_LEN {
             app.results_list.results.clear();
-            current_pattern = app.pattern.value().to_string();
+            app.pattern = app.input.value().to_string();
             let target_paths = vec![app.target_path.clone()];
-            if current_pattern.len() > MIN_SEARCH_PATTERN_LEN {
-                let arc_queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
-                search(
-                    &target_paths,
-                    &current_pattern,
-                    cli_args,
-                    Arc::clone(&arc_queue),
-                );
-                let queue = Arc::into_inner(arc_queue).unwrap();
-                while !queue.is_empty() {
-                    let file_results = queue.pop().unwrap();
-                    app.results_list
-                        .results
-                        .append(&mut file_results_to_ui_results(file_results));
-                }
+            let arc_queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
+            let _ = search(
+                &target_paths,
+                &app.input.value(),
+                cli_args,
+                Arc::clone(&arc_queue),
+            );
+            let queue = Arc::into_inner(arc_queue).unwrap();
+            while !queue.is_empty() {
+                let file_results = queue.pop().unwrap();
+                app.results_list
+                    .results
+                    .append(&mut file_results_to_ui_results(file_results));
             }
             app.results_list.state.select(Some(0));
+        }
+
+        if let Some(selected) = app.results_list.state.selected() {
+            let result = &app.results_list.results[selected];
+            if let Some(last_selected) = &app.selected_result {
+                if result.path != last_selected.path {
+                    app.selected_result = Some(result.clone());
+                    app.preview_state.scroll = (
+                        (result.line_number as isize - (app.preview_pane_height as isize) / 3 + 1)
+                            .max(0) as u16,
+                        0,
+                    );
+                }
+            } else {
+                app.selected_result = Some(result.clone());
+                app.preview_state.scroll = (
+                    (result.line_number as isize - (app.preview_pane_height as isize) / 3 + 1)
+                        .max(0) as u16,
+                    0,
+                );
+            }
         }
     }
 }

@@ -1,25 +1,18 @@
 use ratatui::{
     style::{Style, Stylize},
-    text::{Line, Span},
+    text::Span,
 };
 use syntect;
 
-pub fn convert_syn_line_to_line(syn_line: &Vec<(syntect::highlighting::Style, String)>) -> Line {
-    Line::from_iter(syn_line.iter().map(|sr| convert_syn_region_to_span(sr)))
-}
-
-fn convert_syn_region_to_span(syn_region: &(syntect::highlighting::Style, String)) -> Span {
-    let mut style = Style::default()
-        .fg(ratatui::style::Color::Rgb(
-            syn_region.0.foreground.r,
-            syn_region.0.foreground.g,
-            syn_region.0.foreground.b,
-        ))
-        .bg(ratatui::style::Color::Rgb(
-            syn_region.0.background.r,
-            syn_region.0.background.g,
-            syn_region.0.background.b,
-        ));
+pub fn convert_syn_region_to_span<'a>(
+    syn_region: (syntect::highlighting::Style, String),
+    background: Option<syntect::highlighting::Color>,
+) -> Span<'a> {
+    let mut style =
+        Style::default().fg(convert_syn_color_to_ratatui_color(syn_region.0.foreground));
+    if let Some(background) = background {
+        style = style.bg(convert_syn_color_to_ratatui_color(background));
+    }
     style = match syn_region.0.font_style {
         syntect::highlighting::FontStyle::BOLD => style.bold(),
         syntect::highlighting::FontStyle::ITALIC => style.italic(),
@@ -30,7 +23,7 @@ fn convert_syn_region_to_span(syn_region: &(syntect::highlighting::Style, String
 }
 
 pub fn convert_syn_color_to_ratatui_color(
-    syn_color: syntect::highlighting::Color,
+    color: syntect::highlighting::Color,
 ) -> ratatui::style::Color {
-    ratatui::style::Color::Rgb(syn_color.r, syn_color.g, syn_color.b)
+    ratatui::style::Color::Rgb(color.r, color.g, color.b)
 }
