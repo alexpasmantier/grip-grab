@@ -1,4 +1,5 @@
 pub mod app;
+pub mod highlighting;
 pub mod icons;
 pub mod input;
 pub mod keys;

@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 use std::io::BufRead;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::u16;
 
+use crossbeam::queue::SegQueue;
 use ratatui::widgets::ListState;
 use syntect::easy::HighlightFile;
 use syntect::highlighting::{Style, Theme};
@@ -11,6 +13,8 @@ use syntect::parsing::SyntaxSet;
 use crate::cli::cli::DEFAULT_PATH;
 use crate::int::input::Input;
 use crate::search::search::{FileResults, MatchRange, SearchResult};
+
+use super::highlighting::RThemeSettings;
 
 #[derive(Clone, Copy, PartialEq)]
 pub enum CurrentBlock {
@@ -25,7 +29,7 @@ static BLOCKS: [CurrentBlock; 3] = [
     CurrentBlock::Preview,
 ];
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Result {
     pub path: PathBuf,
     pub line_number: usize,
@@ -76,16 +80,21 @@ pub struct App {
     pub current_block: CurrentBlock,
     pub should_quit: bool,
     pub results_list: ResultsList,
+    pub results_queue: Arc<SegQueue<Result>>,
     pub preview_state: PreviewState,
     pub preview_cache: HashMap<PathBuf, Vec<Vec<(Style, String)>>>,
     pub preview_pane_height: u16,
     pub selected_result: Option<Result>,
-    pub preview_theme: Theme,
+    pub syntect_preview_theme: Theme,
+    pub ratatui_theme_settings: RThemeSettings,
     pub syntax_set: SyntaxSet,
+    pub search_thread_handle: Option<std::thread::JoinHandle<()>>,
 }
 
 impl Default for App {
     fn default() -> Self {
+        let theme = Theme::default();
+        let rtheme_settings = RThemeSettings::from(theme.settings.clone());
         Self {
             target_path: PathBuf::from(DEFAULT_PATH),
             input: Input::new(String::new()),
@@ -93,17 +102,19 @@ impl Default for App {
             current_block: CurrentBlock::Search,
             should_quit: false,
             results_list: ResultsList::default(),
+            results_queue: Arc::new(SegQueue::new()),
             preview_state: PreviewState {
                 scroll: (0, 0),
                 file_name: None,
-                //file_type: None,
                 highlighted_lines: Vec::new(),
             },
             preview_cache: HashMap::new(),
             preview_pane_height: 0,
             selected_result: None,
-            preview_theme: Theme::default(),
+            syntect_preview_theme: theme,
+            ratatui_theme_settings: rtheme_settings,
             syntax_set: SyntaxSet::load_defaults_newlines(),
+            search_thread_handle: None,
         }
     }
 }
@@ -211,7 +222,8 @@ impl App {
     pub fn compute_highlights(&mut self, file_path: &Path) {
         if self.preview_cache.get(file_path).is_none() {
             let mut highlighter =
-                HighlightFile::new(file_path, &self.syntax_set, &self.preview_theme).unwrap();
+                HighlightFile::new(file_path, &self.syntax_set, &self.syntect_preview_theme)
+                    .unwrap();
             let mut line = String::new();
             let mut highlighted_lines = Vec::new();
             while highlighter.reader.read_line(&mut line).unwrap() > 0 {
@@ -261,7 +273,8 @@ impl App {
     }
 
     pub fn preview_theme(mut self, theme: &Theme) -> Self {
-        self.preview_theme = theme.clone();
+        self.syntect_preview_theme = theme.clone();
+        self.ratatui_theme_settings = RThemeSettings::from(theme.settings.clone());
         self
     }
 }

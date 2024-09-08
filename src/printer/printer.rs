@@ -9,7 +9,7 @@ use termcolor::{Buffer, BufferWriter, Color, ColorChoice, ColorSpec, WriteColor}
 use crate::search::search::{FileResults, SearchResult};
 use std::io::stdout;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum PrintMode {
     Text,
     Json,

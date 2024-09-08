@@ -1,9 +1,12 @@
 use int::app::App;
-use std::io;
+use logging::initialize_logging;
 use std::io::{stdin, Read};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{mpsc, Arc, Mutex};
+use std::time::{Duration, Instant};
+use std::{io, thread};
 use syntect::highlighting::ThemeSet;
+use tracing::info;
 
 use app::file_results_to_ui_results;
 use clap::Parser;
@@ -12,9 +15,8 @@ use crossbeam::queue::SegQueue;
 use grep::regex::RegexMatcher;
 use ignore::DirEntry;
 use ratatui::backend::Backend;
-use ratatui::crossterm::event::{self, Event};
+use ratatui::crossterm::event::{self, poll, Event};
 use ratatui::Terminal;
-use syntect::parsing::SyntaxSet;
 
 use crate::cli::cli::{process_cli_args, Cli, Commands, PostProcessedCli};
 use crate::fs::fs::{is_readable_stdin, walk_builder};
@@ -28,6 +30,7 @@ use crate::upgrade::upgrade::upgrade_gg;
 mod cli;
 mod fs;
 mod int;
+mod logging;
 mod printer;
 mod search;
 mod upgrade;
@@ -43,13 +46,14 @@ pub fn main() -> anyhow::Result<()> {
                 return Ok(());
             }
             Commands::Interactive => {
+                initialize_logging()?;
                 term::init_panic_hook();
                 let theme_set = ThemeSet::load_defaults();
-                let theme = &theme_set.themes["base16-eighties.dark"];
+                let theme = &theme_set.themes["Solarized (dark)"];
 
                 let mut terminal = term::init()?;
                 let mut app = app::App::default().preview_theme(theme);
-                let _ = run_app(&mut terminal, &mut app, &cli_args)?;
+                let _ = run_app(&mut terminal, &mut app)?;
                 term::restore()?;
                 return Ok(());
             }
@@ -144,20 +148,26 @@ pub fn main() -> anyhow::Result<()> {
 fn search(
     target_paths: &[PathBuf],
     pattern: &str,
-    cli_args: &PostProcessedCli,
+    cli_args: Option<&PostProcessedCli>,
     queue: Arc<SegQueue<FileResults>>,
 ) -> anyhow::Result<()> {
+    let _cli_args;
+    if cli_args.is_none() {
+        _cli_args = PostProcessedCli::default();
+    } else {
+        _cli_args = cli_args.unwrap().clone();
+    }
     let haystack_builder = walk_builder(
         target_paths.iter().map(|p| p.as_path()).collect(),
-        &cli_args.ignored_paths,
-        cli_args.n_threads,
-        !cli_args.disregard_gitignore,
-        cli_args.filter_filetypes.clone(),
+        &_cli_args.ignored_paths,
+        _cli_args.n_threads,
+        !_cli_args.disregard_gitignore,
+        _cli_args.filter_filetypes.clone(),
     );
     let matcher: Arc<RegexMatcher> = Arc::new(build_matcher(&vec![pattern.into()])?);
     haystack_builder.build_parallel().run(|| {
         let matcher = Arc::clone(&matcher);
-        let mut searcher = build_searcher(cli_args.multiline);
+        let mut searcher = build_searcher(_cli_args.multiline);
         let queue = Arc::clone(&queue);
         Box::new(move |entry: Result<DirEntry, ignore::Error>| match entry {
             Ok(entry) => {
@@ -185,52 +195,96 @@ fn search(
 }
 
 const MIN_SEARCH_PATTERN_LEN: usize = 2;
+const KEY_REFRESH_RATE: Duration = Duration::from_millis(15);
 
-fn run_app<B: Backend>(
-    terminal: &mut Terminal<B>,
-    app: &mut App,
-    cli_args: &PostProcessedCli,
-) -> io::Result<bool> {
+fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
+    let mut running_job_tx: Option<Arc<Mutex<mpsc::Sender<_>>>> = None;
+    let mut should_draw = true;
+    let mut last_key = (
+        event::KeyEvent {
+            code: event::KeyCode::Null,
+            modifiers: event::KeyModifiers::empty(),
+            kind: event::KeyEventKind::Press,
+            state: event::KeyEventState::NONE,
+        },
+        Instant::now(),
+    );
+
     loop {
-        terminal.draw(|f| ui(f, app))?;
-
-        if let Event::Key(key) = event::read()? {
-            if key.kind == event::KeyEventKind::Release {
-                // Skip events that are not KeyEventKind::Press
-                continue;
+        if poll(Duration::from_millis(0))? {
+            if let Event::Key(key) = event::read()? {
+                if !(key.kind == event::KeyEventKind::Release) {
+                    if key == last_key.0 {
+                        if last_key.1.elapsed() >= KEY_REFRESH_RATE {
+                            last_key = (key, Instant::now());
+                            handle_key_event(key, app);
+                            should_draw = true;
+                        }
+                    } else {
+                        last_key = (key, Instant::now());
+                        handle_key_event(key, app);
+                        should_draw = true;
+                    }
+                }
             }
-            handle_key_event(key, app);
         }
 
         if app.should_quit {
             return Ok(true);
         }
 
+        // search
         if app.input.value() != app.pattern && app.input.value().len() > MIN_SEARCH_PATTERN_LEN {
+            if let Some(tx) = running_job_tx {
+                tx.lock().unwrap().send(()).unwrap();
+            }
+            let (tx, rx) = mpsc::channel();
+            running_job_tx = Some(Arc::new(Mutex::new(tx)));
             app.results_list.results.clear();
             app.pattern = app.input.value().to_string();
             let target_paths = vec![app.target_path.clone()];
-            let arc_queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
-            let _ = search(
-                &target_paths,
-                &app.input.value(),
-                cli_args,
-                Arc::clone(&arc_queue),
-            );
-            let queue = Arc::into_inner(arc_queue).unwrap();
-            while !queue.is_empty() {
-                let file_results = queue.pop().unwrap();
-                app.results_list
-                    .results
-                    .append(&mut file_results_to_ui_results(file_results));
-            }
-            if !app.results_list.results.is_empty() {
-                app.results_list.state.select(Some(0));
-            } else {
-                app.results_list.state.select(None);
-            }
+            let search_results_queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
+            let srq_search_handle = Arc::clone(&search_results_queue);
+            let srq_results_handle = Arc::clone(&search_results_queue);
+            let app_results_queue_handle = Arc::clone(&app.results_queue);
+            let new_pattern = app.input.value().to_string();
+            let _search_handle = {
+                thread::spawn(move || {
+                    let _ = search(&target_paths, &new_pattern, None, srq_search_handle);
+                })
+            };
+            let _results_handle = {
+                thread::spawn(move || {
+                    while rx.try_recv().is_err() {
+                        if let Some(file_results) = srq_results_handle.pop() {
+                            file_results_to_ui_results(file_results)
+                                .iter()
+                                .for_each(|r| {
+                                    app_results_queue_handle.push(r.clone());
+                                });
+                        }
+                    }
+                })
+            };
         }
 
+        // handle search results
+        if !app.results_queue.is_empty() {
+            while let Some(result) = app.results_queue.pop() {
+                app.results_list.results.push(result);
+                if app.results_list.state.selected().is_none() {
+                    app.results_list.state.select_first();
+                }
+            }
+            should_draw = true;
+        }
+
+        if app.results_list.results.is_empty() {
+            app.results_list.state.select(None);
+            should_draw = true;
+        }
+
+        // preview pane
         if let Some(selected) = app.results_list.state.selected() {
             let result = app.results_list.results[selected].clone();
             if let Some(last_selected) = &app.selected_result {
@@ -242,7 +296,8 @@ fn run_app<B: Backend>(
                         app.preview_state.file_name =
                             Some(result.path.to_string_lossy().to_string());
                     }
-                    app.set_scroll_for_result(&result)
+                    app.set_scroll_for_result(&result);
+                    should_draw = true;
                 }
                 app.selected_result = Some(result);
             } else {
@@ -257,7 +312,12 @@ fn run_app<B: Backend>(
                         .to_string_lossy()
                         .to_string(),
                 );
+                should_draw = true;
             }
+        }
+        if should_draw {
+            terminal.draw(|f| ui(f, app))?;
+            should_draw = false;
         }
     }
 }

@@ -11,11 +11,8 @@ use ratatui::{
 use std::str::FromStr;
 use syntect::highlighting::Color as SyntectColor;
 
-use crate::utils::highlighting::convert_syn_region_to_span;
-use crate::{
-    app::{self, App},
-    utils::highlighting::convert_syn_color_to_ratatui_color,
-};
+use crate::app::{self, App};
+use crate::int::highlighting::convert_syn_region_to_span;
 
 use super::icons::{icon_for_file, File};
 
@@ -49,6 +46,18 @@ fn get_border_style(focused: bool) -> Style {
         Style::default().fg(Color::Rgb(90, 90, 110)).dim()
     }
 }
+
+// input colors
+const DEFAULT_INPUT_FG: Color = Color::Rgb(200, 200, 200);
+const DEFAULT_RESULTS_COUNT_FG: Color = Color::Rgb(170, 170, 170);
+
+// results colors
+const DEFAULT_RESULT_MATCH_COLOR: Color = Color::Rgb(255, 150, 150);
+const DEFAULT_RESULT_LINE_FG: Color = Color::Rgb(150, 150, 150);
+
+// preview colors
+const DEFAULT_PREVIEW_GUTTER_FG: Color = Color::Rgb(70, 70, 70);
+const DEFAULT_PREVIEW_GUTTER_SELECTED_FG: Color = Color::Rgb(255, 150, 150);
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
     let main_block = centered_rect(80, 80, frame.area());
@@ -92,18 +101,32 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
             let end = m.end;
             let mut spans = vec![];
             if start > last_match_end {
-                spans.push(Span::raw(&line_text[last_match_end..start]));
+                spans.push(
+                    Span::raw(&line_text[last_match_end..start]).style(
+                        Style::default().fg(app
+                            .ratatui_theme_settings
+                            .foreground
+                            .unwrap_or(DEFAULT_RESULT_LINE_FG)),
+                    ),
+                );
             }
             spans.push(Span::styled(
                 &line_text[start..end],
-                Style::default().fg(Color::Rgb(255, 150, 150)),
+                Style::default().fg(DEFAULT_RESULT_MATCH_COLOR),
             ));
             last_match_end = end;
             spans
         });
         let mut content_spans = content_line_spans.flatten().collect::<Vec<Span>>();
         if last_match_end < r.line.len() {
-            content_spans.push(Span::raw(&r.line[last_match_end..]));
+            content_spans.push(
+                Span::raw(&r.line[last_match_end..]).style(
+                    Style::default().fg(app
+                        .ratatui_theme_settings
+                        .foreground
+                        .unwrap_or(DEFAULT_RESULT_LINE_FG)),
+                ),
+            );
         }
         let file_icon = icon_for_file(&File::new(&r.path));
         let mut line_spans = vec![
@@ -125,9 +148,12 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         line_spans.extend(content_spans);
         Line::from(line_spans)
     }))
-    .style(Style::default().fg(Color::White))
-    // TODO: make these depend on theme
-    .highlight_style(Style::default().bg(Color::Rgb(50, 50, 50)))
+    .highlight_style(
+        Style::default().bg(app
+            .ratatui_theme_settings
+            .inactive_selection
+            .unwrap_or(Color::Rgb(50, 50, 50))),
+    )
     .highlight_symbol("> ")
     //.repeat_highlight_symbol(true)
     .direction(ListDirection::BottomToTop)
@@ -152,7 +178,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
             app::CurrentBlock::Search == app.current_block,
         ))
         .style(Style::default());
-    // TODO: fix this so that ui doesn't suck
+
     let botleft_inner = botleft_block.inner(left_chunks[1]);
 
     frame.render_widget(botleft_block, left_chunks[1]);
@@ -160,9 +186,11 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
     let bottom_left_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Max(10),
+            Constraint::Length(2),
             Constraint::Fill(1),
-            Constraint::Max(20),
+            Constraint::Length(
+                2 * ((app.results_list.results.len() as f32).log10().ceil() as u16 + 1) + 3,
+            ),
         ])
         .split(botleft_inner);
 
@@ -171,19 +199,25 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
     frame.render_widget(arrow, bottom_left_chunks[0]);
 
     let input_block = Block::default();
-    let width = bottom_left_chunks[0].width - 1; // keep 2 for borders and 1 for cursor
+    let width = bottom_left_chunks[1].width.max(3) - 3; // keep 2 for borders and 1 for cursor
     let scroll = app.input.visual_scroll(width as usize);
     let input = Paragraph::new(app.input.value())
         .scroll((0, scroll as u16))
         .block(input_block)
+        .style(
+            Style::default().fg(app
+                .ratatui_theme_settings
+                .foreground
+                .unwrap_or(DEFAULT_INPUT_FG)),
+        )
         .alignment(Alignment::Left);
     frame.render_widget(input, bottom_left_chunks[1]);
 
     if let Some(selected) = app.results_list.state.selected() {
         let result_count_block = Block::default();
         let result_count = Paragraph::new(Span::styled(
-            format!(" {} / {}", selected + 1, app.results_list.results.len()),
-            Style::default(),
+            format!(" {} / {} ", selected + 1, app.results_list.results.len()),
+            Style::default().fg(DEFAULT_RESULTS_COUNT_FG),
         ))
         .block(result_count_block)
         .alignment(Alignment::Right);
@@ -194,9 +228,9 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
         frame.set_cursor_position((
             // Put cursor past the end of the input text
-            left_chunks[1].x + ((app.input.visual_cursor()).max(scroll) - scroll) as u16 + 1,
+            bottom_left_chunks[1].x + ((app.input.visual_cursor()).max(scroll) - scroll) as u16,
             // Move one line down, from the border to the input line
-            left_chunks[1].y + 1,
+            bottom_left_chunks[1].y,
         ))
     }
 
@@ -243,16 +277,6 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
 
     if app.preview_state.file_name.is_some() {
         let result = app.selected_result.as_ref().unwrap();
-        let theme_gutter_fg =
-            app.preview_theme
-                .settings
-                .gutter_foreground
-                .unwrap_or(SyntectColor {
-                    r: 70,
-                    g: 70,
-                    b: 70,
-                    a: 255,
-                });
 
         let preview_lines: Vec<Line> = app
             .preview_state
@@ -263,9 +287,11 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                 let line_number_with_style = Span::styled(
                     format!("{:5} ", i + 1),
                     Style::default().fg(if i == result.line_number - 1 {
-                        Color::Rgb(255, 150, 150)
+                        DEFAULT_PREVIEW_GUTTER_SELECTED_FG
                     } else {
-                        convert_syn_color_to_ratatui_color(theme_gutter_fg)
+                        app.ratatui_theme_settings
+                            .gutter_foreground
+                            .unwrap_or(DEFAULT_PREVIEW_GUTTER_FG)
                     }),
                 );
                 Line::from_iter(
@@ -273,7 +299,10 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                         .chain(std::iter::once(Span::styled(
                             " │ ",
                             Style::default()
-                                .fg(convert_syn_color_to_ratatui_color(theme_gutter_fg))
+                                .fg(app
+                                    .ratatui_theme_settings
+                                    .gutter_foreground
+                                    .unwrap_or(DEFAULT_PREVIEW_GUTTER_FG))
                                 .dim(),
                         )))
                         .chain(l.iter().cloned().map(|sr| {

@@ -2,12 +2,6 @@ use super::{Input, InputRequest, StateChanged};
 use ratatui::crossterm::event::{
     Event as CrosstermEvent, KeyCode, KeyEvent, KeyEventKind, KeyModifiers,
 };
-use ratatui::crossterm::{
-    cursor::MoveTo,
-    queue,
-    style::{Attribute as CAttribute, Print, SetAttribute},
-};
-use std::io::{Result, Write};
 
 /// Converts crossterm event into input requests.
 /// TODO: make these keybindings configurable.
@@ -42,49 +36,6 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
         },
         _ => None,
     }
-}
-
-/// Renders the input UI at the given position with the given width.
-pub fn write<W: Write>(
-    stdout: &mut W,
-    value: &str,
-    cursor: usize,
-    (x, y): (u16, u16),
-    width: u16,
-) -> Result<()> {
-    queue!(stdout, MoveTo(x, y), SetAttribute(CAttribute::NoReverse))?;
-
-    let val_width = width.max(1) as usize - 1;
-    let len = value.chars().count();
-    let start = (len.max(val_width) - val_width).min(cursor);
-    let mut chars = value.chars().skip(start);
-    let mut i = start;
-
-    // Chars before cursor
-    while i < cursor {
-        i += 1;
-        let c = chars.next().unwrap_or(' ');
-        queue!(stdout, Print(c))?;
-    }
-
-    // Cursor
-    i += 1;
-    let c = chars.next().unwrap_or(' ');
-    queue!(
-        stdout,
-        SetAttribute(CAttribute::Reverse),
-        Print(c),
-        SetAttribute(CAttribute::NoReverse)
-    )?;
-
-    // Chars after the cursor
-    while i <= start + val_width {
-        i += 1;
-        let c = chars.next().unwrap_or(' ');
-        queue!(stdout, Print(c))?;
-    }
-
-    Ok(())
 }
 
 /// Import this trait to implement `Input::handle_event()` for crossterm.

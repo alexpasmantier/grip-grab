@@ -112,7 +112,7 @@ impl Cli {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PostProcessedCli {
     pub patterns: Vec<String>,
     pub paths: Vec<PathBuf>,
