@@ -44,8 +44,11 @@ pub fn main() -> anyhow::Result<()> {
             }
             Commands::Interactive => {
                 term::init_panic_hook();
+                let theme_set = ThemeSet::load_defaults();
+                let theme = &theme_set.themes["base16-eighties.dark"];
+
                 let mut terminal = term::init()?;
-                let mut app = app::App::default();
+                let mut app = app::App::default().preview_theme(theme);
                 let _ = run_app(&mut terminal, &mut app, &cli_args)?;
                 term::restore()?;
                 return Ok(());
@@ -188,11 +191,8 @@ fn run_app<B: Backend>(
     app: &mut App,
     cli_args: &PostProcessedCli,
 ) -> io::Result<bool> {
-    let syntax_set = SyntaxSet::load_defaults_newlines();
-    let theme_set = ThemeSet::load_defaults();
-    let theme = &theme_set.themes["base16-eighties.dark"];
     loop {
-        terminal.draw(|f| ui(f, app, &syntax_set, theme))?;
+        terminal.draw(|f| ui(f, app))?;
 
         if let Event::Key(key) = event::read()? {
             if key.kind == event::KeyEventKind::Release {
@@ -224,26 +224,38 @@ fn run_app<B: Backend>(
                     .results
                     .append(&mut file_results_to_ui_results(file_results));
             }
-            app.results_list.state.select(Some(0));
+            if !app.results_list.results.is_empty() {
+                app.results_list.state.select(Some(0));
+            } else {
+                app.results_list.state.select(None);
+            }
         }
 
         if let Some(selected) = app.results_list.state.selected() {
-            let result = &app.results_list.results[selected];
+            let result = app.results_list.results[selected].clone();
             if let Some(last_selected) = &app.selected_result {
-                if result.path != last_selected.path {
-                    app.selected_result = Some(result.clone());
-                    app.preview_state.scroll = (
-                        (result.line_number as isize - (app.preview_pane_height as isize) / 3 + 1)
-                            .max(0) as u16,
-                        0,
-                    );
+                if result.line_number != last_selected.line_number
+                    || result.path != last_selected.path
+                {
+                    if result.path != last_selected.path {
+                        app.compute_highlights(&result.path);
+                        app.preview_state.file_name =
+                            Some(result.path.to_string_lossy().to_string());
+                    }
+                    app.set_scroll_for_result(&result)
                 }
+                app.selected_result = Some(result);
             } else {
-                app.selected_result = Some(result.clone());
-                app.preview_state.scroll = (
-                    (result.line_number as isize - (app.preview_pane_height as isize) / 3 + 1)
-                        .max(0) as u16,
-                    0,
+                app.set_scroll_for_result(&result);
+                app.compute_highlights(&result.path);
+                app.selected_result = Some(result);
+                app.preview_state.file_name = Some(
+                    app.selected_result
+                        .as_ref()
+                        .unwrap()
+                        .path
+                        .to_string_lossy()
+                        .to_string(),
                 );
             }
         }

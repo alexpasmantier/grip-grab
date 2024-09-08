@@ -8,12 +8,8 @@ use ratatui::{
     },
     Frame,
 };
-use std::{io::BufRead, str::FromStr};
-use syntect::{
-    easy::HighlightFile,
-    highlighting::{Color as SyntectColor, Theme},
-    parsing::SyntaxSet,
-};
+use std::str::FromStr;
+use syntect::highlighting::Color as SyntectColor;
 
 use crate::utils::highlighting::convert_syn_region_to_span;
 use crate::{
@@ -54,7 +50,7 @@ fn get_border_style(focused: bool) -> Style {
     }
 }
 
-pub fn ui(frame: &mut Frame, app: &mut App, syntax_set: &SyntaxSet, theme: &Theme) {
+pub fn ui(frame: &mut Frame, app: &mut App) {
     let main_block = centered_rect(80, 80, frame.area());
 
     // split the main block into two vertical chunks
@@ -144,7 +140,7 @@ pub fn ui(frame: &mut Frame, app: &mut App, syntax_set: &SyntaxSet, theme: &Them
     );
 
     // bottom left block: input field
-    let input_block = Block::default()
+    let botleft_block = Block::default()
         .title(
             Title::from(" Pattern ")
                 .position(Position::Top)
@@ -156,14 +152,43 @@ pub fn ui(frame: &mut Frame, app: &mut App, syntax_set: &SyntaxSet, theme: &Them
             app::CurrentBlock::Search == app.current_block,
         ))
         .style(Style::default());
+    // TODO: fix this so that ui doesn't suck
+    let botleft_inner = botleft_block.inner(left_chunks[1]);
 
-    // input field
-    let width = chunks[0].width.max(3) - 3; // keep 2 for borders and 1 for cursor
+    frame.render_widget(botleft_block, left_chunks[1]);
 
+    let bottom_left_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Max(10),
+            Constraint::Fill(1),
+            Constraint::Max(20),
+        ])
+        .split(botleft_inner);
+
+    let arrow_block = Block::default();
+    let arrow = Paragraph::new(Span::styled("> ", Style::default())).block(arrow_block);
+    frame.render_widget(arrow, bottom_left_chunks[0]);
+
+    let input_block = Block::default();
+    let width = bottom_left_chunks[0].width - 1; // keep 2 for borders and 1 for cursor
     let scroll = app.input.visual_scroll(width as usize);
     let input = Paragraph::new(app.input.value())
         .scroll((0, scroll as u16))
-        .block(input_block);
+        .block(input_block)
+        .alignment(Alignment::Left);
+    frame.render_widget(input, bottom_left_chunks[1]);
+
+    if let Some(selected) = app.results_list.state.selected() {
+        let result_count_block = Block::default();
+        let result_count = Paragraph::new(Span::styled(
+            format!(" {} / {}", selected + 1, app.results_list.results.len()),
+            Style::default(),
+        ))
+        .block(result_count_block)
+        .alignment(Alignment::Right);
+        frame.render_widget(result_count, bottom_left_chunks[2]);
+    }
 
     if let app::CurrentBlock::Search = app.current_block {
         // Make the cursor visible and ask tui-rs to put it at the specified coordinates after rendering
@@ -177,19 +202,12 @@ pub fn ui(frame: &mut Frame, app: &mut App, syntax_set: &SyntaxSet, theme: &Them
 
     // current file name
     let result_title: String;
-    if !app.results_list.results.is_empty() {
-        if let Some(selected_index) = app.results_list.state.selected() {
-            let index = selected_index % app.results_list.results.len();
-            let result = &app.results_list.results[index];
-            result_title = result.path.to_string_lossy().to_string()
-        } else {
-            result_title = "Nothing selected".to_string();
-        }
+    if let Some(file_name) = &app.preview_state.file_name {
+        result_title = file_name.to_string();
     } else {
         result_title = "No results".to_string();
     }
     let preview_file_path = Paragraph::new(result_title)
-        //let preview_file_path = Paragraph::new(app.preview_state.scroll.0.to_string())
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -223,88 +241,67 @@ pub fn ui(frame: &mut Frame, app: &mut App, syntax_set: &SyntaxSet, theme: &Them
     app.preview_pane_height = inner.height;
     frame.render_widget(preview_outer_block, right_chunks[1]);
 
-    // maybe this should go into the run_app function and be cached somehow
-    if !app.results_list.results.is_empty() {
-        if let Some(selected_index) = app.results_list.state.selected() {
-            let index = selected_index % app.results_list.results.len();
-            let result = &app.results_list.results[index];
-            let line_number = result.line_number;
-            let mut highlighter =
-                HighlightFile::new(result.path.clone(), &syntax_set, &theme).unwrap();
-            let mut line = String::new();
-            let mut syn_lines: Vec<Vec<(syntect::highlighting::Style, String)>> = Vec::new();
-            while highlighter.reader.read_line(&mut line).unwrap() > 0 {
-                {
-                    let line_regions = highlighter
-                        .highlight_lines
-                        .highlight_line(&line, &syntax_set)
-                        .unwrap();
+    if app.preview_state.file_name.is_some() {
+        let result = app.selected_result.as_ref().unwrap();
+        let theme_gutter_fg =
+            app.preview_theme
+                .settings
+                .gutter_foreground
+                .unwrap_or(SyntectColor {
+                    r: 70,
+                    g: 70,
+                    b: 70,
+                    a: 255,
+                });
 
-                    let mut cloned_regions = Vec::new();
-                    for region in line_regions.iter() {
-                        cloned_regions.push((region.0, region.1.to_owned()));
-                    }
+        let preview_lines: Vec<Line> = app
+            .preview_state
+            .highlighted_lines
+            .iter()
+            .enumerate()
+            .map(|(i, l)| {
+                let line_number_with_style = Span::styled(
+                    format!("{:5} ", i + 1),
+                    Style::default().fg(if i == result.line_number - 1 {
+                        Color::Rgb(255, 150, 150)
+                    } else {
+                        convert_syn_color_to_ratatui_color(theme_gutter_fg)
+                    }),
+                );
+                Line::from_iter(
+                    std::iter::once(line_number_with_style)
+                        .chain(std::iter::once(Span::styled(
+                            " │ ",
+                            Style::default()
+                                .fg(convert_syn_color_to_ratatui_color(theme_gutter_fg))
+                                .dim(),
+                        )))
+                        .chain(l.iter().cloned().map(|sr| {
+                            convert_syn_region_to_span(
+                                sr,
+                                if i == result.line_number - 1 {
+                                    Some(SyntectColor {
+                                        r: 50,
+                                        g: 50,
+                                        b: 50,
+                                        a: 255,
+                                    })
+                                } else {
+                                    None
+                                },
+                            )
+                        })),
+                )
+            })
+            .collect();
+        let preview_text = Text::from(preview_lines);
 
-                    syn_lines.push(cloned_regions);
-                }
-                line.clear();
-            }
-
-            let theme_gutter_fg = theme.settings.gutter_foreground.unwrap_or(SyntectColor {
-                r: 70,
-                g: 70,
-                b: 70,
-                a: 255,
-            });
-
-            let preview_lines: Vec<Line> = syn_lines
-                .iter()
-                .enumerate()
-                .map(|(i, l)| {
-                    let line_number_with_style = Span::styled(
-                        format!("{:5} ", i + 1),
-                        Style::default().fg(if i == line_number - 1 {
-                            Color::Rgb(255, 150, 150)
-                        } else {
-                            convert_syn_color_to_ratatui_color(theme_gutter_fg)
-                        }),
-                    );
-                    Line::from_iter(
-                        std::iter::once(line_number_with_style)
-                            .chain(std::iter::once(Span::styled(
-                                " │ ",
-                                Style::default()
-                                    .fg(convert_syn_color_to_ratatui_color(theme_gutter_fg))
-                                    .dim(),
-                            )))
-                            .chain(l.iter().cloned().map(|sr| {
-                                convert_syn_region_to_span(
-                                    sr,
-                                    if i == line_number - 1 {
-                                        Some(SyntectColor {
-                                            r: 50,
-                                            g: 50,
-                                            b: 50,
-                                            a: 255,
-                                        })
-                                    } else {
-                                        None
-                                    },
-                                )
-                            })),
-                    )
-                })
-                .collect();
-            let preview_text = Text::from(preview_lines);
-
-            let preview_paragraph = Paragraph::new(preview_text)
-                .block(preview_inner_block)
-                .alignment(Alignment::Left)
-                .scroll(app.preview_state.scroll);
-            frame.render_widget(preview_paragraph, inner);
-        }
+        let preview_paragraph = Paragraph::new(preview_text)
+            .block(preview_inner_block)
+            .alignment(Alignment::Left)
+            .scroll(app.preview_state.scroll);
+        frame.render_widget(preview_paragraph, inner);
     }
 
-    frame.render_widget(input, left_chunks[1]);
     frame.render_widget(preview_file_path, right_chunks[0]);
 }

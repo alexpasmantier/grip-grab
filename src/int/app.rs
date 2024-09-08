@@ -1,9 +1,12 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::io::BufRead;
+use std::path::{Path, PathBuf};
 use std::u16;
 
 use ratatui::widgets::ListState;
-use syntect::highlighting::Style;
+use syntect::easy::HighlightFile;
+use syntect::highlighting::{Style, Theme};
+use syntect::parsing::SyntaxSet;
 
 use crate::cli::cli::DEFAULT_PATH;
 use crate::int::input::Input;
@@ -62,7 +65,7 @@ impl Default for ResultsList {
 pub struct PreviewState {
     pub scroll: (u16, u16),
     pub file_name: Option<String>,
-    pub file_type: Option<String>,
+    //pub file_type: Option<String>,
     pub highlighted_lines: Vec<Vec<(Style, String)>>,
 }
 
@@ -77,6 +80,8 @@ pub struct App {
     pub preview_cache: HashMap<PathBuf, Vec<Vec<(Style, String)>>>,
     pub preview_pane_height: u16,
     pub selected_result: Option<Result>,
+    pub preview_theme: Theme,
+    pub syntax_set: SyntaxSet,
 }
 
 impl Default for App {
@@ -91,12 +96,14 @@ impl Default for App {
             preview_state: PreviewState {
                 scroll: (0, 0),
                 file_name: None,
-                file_type: None,
+                //file_type: None,
                 highlighted_lines: Vec::new(),
             },
             preview_cache: HashMap::new(),
             preview_pane_height: 0,
             selected_result: None,
+            preview_theme: Theme::default(),
+            syntax_set: SyntaxSet::load_defaults_newlines(),
         }
     }
 }
@@ -197,24 +204,64 @@ impl App {
         }
     }
 
-    pub fn compute_highlights_for_selected(&mut self) {
-        todo!()
+    pub fn select_result(&mut self, index: usize) {
+        self.selected_result = Some(self.results_list.results[index].clone());
+    }
+
+    pub fn compute_highlights(&mut self, file_path: &Path) {
+        if self.preview_cache.get(file_path).is_none() {
+            let mut highlighter =
+                HighlightFile::new(file_path, &self.syntax_set, &self.preview_theme).unwrap();
+            let mut line = String::new();
+            let mut highlighted_lines = Vec::new();
+            while highlighter.reader.read_line(&mut line).unwrap() > 0 {
+                {
+                    let line_regions = highlighter
+                        .highlight_lines
+                        .highlight_line(&line, &self.syntax_set)
+                        .unwrap();
+
+                    let mut cloned_regions = Vec::new();
+                    for region in line_regions.iter() {
+                        cloned_regions.push((region.0, region.1.to_owned()));
+                    }
+
+                    highlighted_lines.push(cloned_regions);
+                }
+                line.clear();
+            }
+            self.preview_cache
+                .insert(file_path.to_path_buf(), highlighted_lines.clone());
+        }
+        self.preview_state.highlighted_lines = self.preview_cache[file_path].clone();
+    }
+
+    pub fn set_scroll_for_result(&mut self, result: &Result) {
+        self.preview_state.scroll = (
+            (result.line_number as isize - (self.preview_pane_height as isize) / 3 + 1).max(0)
+                as u16,
+            0,
+        );
     }
 
     pub fn scroll_preview_down(&mut self, offset: u16) {
-        self.preview_state.scroll.0 = self.preview_state.scroll.0.saturating_add(offset).min(
+        self.preview_state.scroll.0 = (self.preview_state.scroll.0 + offset).min(
             (self.preview_state.highlighted_lines.len() as isize
                 - (2 * self.preview_pane_height / 3) as isize)
                 .max(0) as u16,
         );
     }
 
-    // TODO: same thing as above
     pub fn scroll_preview_up(&mut self, offset: u16) {
         self.preview_state.scroll.0 = self.preview_state.scroll.0.saturating_sub(offset);
     }
 
     pub fn reset_preview_scroll(&mut self) {
         self.preview_state.scroll = (0, 0);
+    }
+
+    pub fn preview_theme(mut self, theme: &Theme) -> Self {
+        self.preview_theme = theme.clone();
+        self
     }
 }
