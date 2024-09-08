@@ -47,10 +47,12 @@ pub fn main() -> anyhow::Result<()> {
             Commands::Interactive => {
                 initialize_logging()?;
                 term::init_panic_hook();
-                //let theme_set = ThemeSet::load_defaults();
+                let theme_set = ThemeSet::load_defaults();
                 //let theme = &theme_set.themes["Solarized (dark)"];
+                let theme = &theme_set.themes["base16-mocha.dark"];
+
                 //let theme = ThemeSet::get_theme("assets/themes/Catppuccin Mocha.tmTheme")?;
-                let theme = ThemeSet::get_theme("assets/themes/gruvbox-dark.tmTheme")?;
+                //let theme = ThemeSet::get_theme("assets/themes/gruvbox-dark.tmTheme")?;
 
                 let mut terminal = term::init()?;
                 let mut app = app::App::default().preview_theme(&theme);
@@ -245,7 +247,6 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                 running_job_tx = Some(Arc::new(Mutex::new(tx)));
                 app.results_list.results.clear();
                 app.results_queue = Arc::new(SegQueue::new());
-                app.pattern = app.input.value().to_string();
                 let target_paths = vec![app.target_path.clone()];
                 let search_results_queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
                 let srq_search_handle = Arc::clone(&search_results_queue);
@@ -273,7 +274,10 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
             } else {
                 app.results_list.results.clear();
                 app.results_queue = Arc::new(SegQueue::new());
+                app.preview_state = app::PreviewState::default();
+                should_draw = true;
             }
+            app.pattern = app.input.value().to_string();
         }
 
         // handle search results

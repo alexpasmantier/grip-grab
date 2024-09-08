@@ -73,6 +73,17 @@ pub struct PreviewState {
     pub highlighted_lines: Vec<Vec<(Style, String)>>,
 }
 
+impl Default for PreviewState {
+    fn default() -> Self {
+        Self {
+            scroll: (0, 0),
+            file_name: None,
+            //file_type: None,
+            highlighted_lines: Vec::new(),
+        }
+    }
+}
+
 pub struct App {
     pub target_path: PathBuf,
     pub input: Input,
@@ -103,11 +114,7 @@ impl Default for App {
             should_quit: false,
             results_list: ResultsList::default(),
             results_queue: Arc::new(SegQueue::new()),
-            preview_state: PreviewState {
-                scroll: (0, 0),
-                file_name: None,
-                highlighted_lines: Vec::new(),
-            },
+            preview_state: PreviewState::default(),
             preview_cache: HashMap::new(),
             preview_pane_height: 0,
             selected_result: None,
