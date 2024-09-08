@@ -1,9 +1,11 @@
 - [x] async searching for results and displaying them in the UI
 - [ ] async preview highlighting into cache and UI checks for cache (might be overkill)
-- [ ] capping the number of results displayed in the UI (telescope does that) -> might allow caching all preview highlights ahead of time
+- [x] capping the number of results displayed in the UI (telescope does that) -> might allow caching all preview highlights ahead of time
 - [x] displaying the current number of results found
 - [x] scrolling problems (seems like the arithmetics are off)
 - [ ] fuzzy search (other tool?)
 - [x] navigation shortcuts for preview while in other panes
 - [x] converting between syntec colors and ratatui colors for theme specification
 - [ ] PR to ratatui for docstrings on constraints (should be characters instead of pixels)
+- [ ] loading preview themes from a file / dir
+- [ ] loading preview syntaxes from a file / dir

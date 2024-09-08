@@ -59,6 +59,8 @@ const DEFAULT_RESULT_LINE_FG: Color = Color::Rgb(150, 150, 150);
 const DEFAULT_PREVIEW_GUTTER_FG: Color = Color::Rgb(70, 70, 70);
 const DEFAULT_PREVIEW_GUTTER_SELECTED_FG: Color = Color::Rgb(255, 150, 150);
 
+const FOUR_SPACES: &str = "    ";
+
 pub fn ui(frame: &mut Frame, app: &mut App) {
     let main_block = centered_rect(80, 80, frame.area());
 
@@ -91,7 +93,8 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         .border_style(get_border_style(
             app::CurrentBlock::Results == app.current_block,
         ))
-        .style(Style::default());
+        .style(Style::default())
+        .padding(Padding::right(1));
 
     let results_list = List::new(app.results_list.results.iter().map(|r| {
         let mut last_match_end = 0;
@@ -101,8 +104,10 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
             let end = m.end;
             let mut spans = vec![];
             if start > last_match_end {
+                let chunk_without_tabs =
+                    line_text[last_match_end..start].replace("\t", FOUR_SPACES);
                 spans.push(
-                    Span::raw(&line_text[last_match_end..start]).style(
+                    Span::raw(chunk_without_tabs).style(
                         Style::default().fg(app
                             .ratatui_theme_settings
                             .foreground
@@ -111,7 +116,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                 );
             }
             spans.push(Span::styled(
-                &line_text[start..end],
+                line_text[start..end].replace("\t", FOUR_SPACES),
                 Style::default().fg(DEFAULT_RESULT_MATCH_COLOR),
             ));
             last_match_end = end;
@@ -183,14 +188,13 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
 
     frame.render_widget(botleft_block, left_chunks[1]);
 
+    let total_search_results = app.results_queue.len() + app.results_list.results.len();
     let bottom_left_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
             Constraint::Length(2),
             Constraint::Fill(1),
-            Constraint::Length(
-                2 * ((app.results_list.results.len() as f32).log10().ceil() as u16 + 1) + 3,
-            ),
+            Constraint::Length(2 * ((total_search_results as f32).log10().ceil() as u16 + 1) + 3),
         ])
         .split(botleft_inner);
 
@@ -216,7 +220,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
     if let Some(selected) = app.results_list.state.selected() {
         let result_count_block = Block::default();
         let result_count = Paragraph::new(Span::styled(
-            format!(" {} / {} ", selected + 1, app.results_list.results.len()),
+            format!(" {} / {} ", selected + 1, total_search_results,),
             Style::default().fg(DEFAULT_RESULTS_COUNT_FG),
         ))
         .block(result_count_block)
@@ -248,7 +252,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                 .border_type(BorderType::Rounded)
                 .border_style(get_border_style(false)),
         )
-        .style(Style::default().dim())
+        .style(Style::default().fg(Color::Blue))
         .alignment(Alignment::Left);
 
     // file preview
@@ -263,7 +267,8 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
         .border_style(get_border_style(
             app::CurrentBlock::Preview == app.current_block,
         ))
-        .style(Style::default());
+        .style(Style::default())
+        .padding(Padding::right(1));
 
     let preview_inner_block = Block::default().style(Style::default()).padding(Padding {
         top: 0,
@@ -307,7 +312,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                         )))
                         .chain(l.iter().cloned().map(|sr| {
                             convert_syn_region_to_span(
-                                sr,
+                                (sr.0, sr.1.replace("\t", FOUR_SPACES)),
                                 if i == result.line_number - 1 {
                                     Some(SyntectColor {
                                         r: 50,

@@ -6,7 +6,6 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{io, thread};
 use syntect::highlighting::ThemeSet;
-use tracing::info;
 
 use app::file_results_to_ui_results;
 use clap::Parser;
@@ -48,11 +47,13 @@ pub fn main() -> anyhow::Result<()> {
             Commands::Interactive => {
                 initialize_logging()?;
                 term::init_panic_hook();
-                let theme_set = ThemeSet::load_defaults();
-                let theme = &theme_set.themes["Solarized (dark)"];
+                //let theme_set = ThemeSet::load_defaults();
+                //let theme = &theme_set.themes["Solarized (dark)"];
+                //let theme = ThemeSet::get_theme("assets/themes/Catppuccin Mocha.tmTheme")?;
+                let theme = ThemeSet::get_theme("assets/themes/gruvbox-dark.tmTheme")?;
 
                 let mut terminal = term::init()?;
-                let mut app = app::App::default().preview_theme(theme);
+                let mut app = app::App::default().preview_theme(&theme);
                 let _ = run_app(&mut terminal, &mut app)?;
                 term::restore()?;
                 return Ok(());
@@ -194,6 +195,7 @@ fn search(
     Ok(())
 }
 
+const MAX_RESULTS_DISPLAY_COUNT: usize = 1000;
 const MIN_SEARCH_PATTERN_LEN: usize = 2;
 const KEY_REFRESH_RATE: Duration = Duration::from_millis(15);
 
@@ -234,53 +236,64 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
         }
 
         // search
-        if app.input.value() != app.pattern && app.input.value().len() > MIN_SEARCH_PATTERN_LEN {
-            if let Some(tx) = running_job_tx {
-                tx.lock().unwrap().send(()).unwrap();
-            }
-            let (tx, rx) = mpsc::channel();
-            running_job_tx = Some(Arc::new(Mutex::new(tx)));
-            app.results_list.results.clear();
-            app.pattern = app.input.value().to_string();
-            let target_paths = vec![app.target_path.clone()];
-            let search_results_queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
-            let srq_search_handle = Arc::clone(&search_results_queue);
-            let srq_results_handle = Arc::clone(&search_results_queue);
-            let app_results_queue_handle = Arc::clone(&app.results_queue);
-            let new_pattern = app.input.value().to_string();
-            let _search_handle = {
-                thread::spawn(move || {
-                    let _ = search(&target_paths, &new_pattern, None, srq_search_handle);
-                })
-            };
-            let _results_handle = {
-                thread::spawn(move || {
-                    while rx.try_recv().is_err() {
-                        if let Some(file_results) = srq_results_handle.pop() {
-                            file_results_to_ui_results(file_results)
-                                .iter()
-                                .for_each(|r| {
-                                    app_results_queue_handle.push(r.clone());
-                                });
+        if app.input.value() != app.pattern {
+            if app.input.value().len() >= MIN_SEARCH_PATTERN_LEN {
+                if let Some(tx) = running_job_tx {
+                    tx.lock().unwrap().send(()).unwrap();
+                }
+                let (tx, rx) = mpsc::channel();
+                running_job_tx = Some(Arc::new(Mutex::new(tx)));
+                app.results_list.results.clear();
+                app.results_queue = Arc::new(SegQueue::new());
+                app.pattern = app.input.value().to_string();
+                let target_paths = vec![app.target_path.clone()];
+                let search_results_queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
+                let srq_search_handle = Arc::clone(&search_results_queue);
+                let srq_results_handle = Arc::clone(&search_results_queue);
+                let app_results_queue_handle = Arc::clone(&app.results_queue);
+                let new_pattern = app.input.value().to_string();
+                let _search_handle = {
+                    thread::spawn(move || {
+                        let _ = search(&target_paths, &new_pattern, None, srq_search_handle);
+                    })
+                };
+                let _results_handle = {
+                    thread::spawn(move || {
+                        while rx.try_recv().is_err() {
+                            if let Some(file_results) = srq_results_handle.pop() {
+                                file_results_to_ui_results(file_results)
+                                    .iter()
+                                    .for_each(|r| {
+                                        app_results_queue_handle.push(r.clone());
+                                    });
+                            }
                         }
-                    }
-                })
-            };
+                    })
+                };
+            } else {
+                app.results_list.results.clear();
+                app.results_queue = Arc::new(SegQueue::new());
+            }
         }
 
         // handle search results
-        if !app.results_queue.is_empty() {
-            while let Some(result) = app.results_queue.pop() {
-                app.results_list.results.push(result);
-                if app.results_list.state.selected().is_none() {
-                    app.results_list.state.select_first();
+        while !app.results_queue.is_empty() {
+            if app.results_list.results.len() < MAX_RESULTS_DISPLAY_COUNT {
+                if let Some(result) = app.results_queue.pop() {
+                    app.results_list.results.push(result);
+                    should_draw = true;
                 }
+            } else {
+                should_draw = true;
+                break;
             }
-            should_draw = true;
         }
 
         if app.results_list.results.is_empty() {
             app.results_list.state.select(None);
+            should_draw = true;
+        } else if app.results_list.state.selected().is_none() {
+            app.results_list.state.select_first();
             should_draw = true;
         }
 
