@@ -21,6 +21,7 @@ categories = [
 anyhow = "1.0.86"
 clap = { version = "4.5.9", features = ["derive"] }
 crossbeam = { version = "0.8.4", features = ["crossbeam-queue"] }
+devicons = "0.1.0"
 directories = "5.0.1"
 grep = "0.3.1"
 ignore = "0.4.22"

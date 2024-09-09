@@ -14,7 +14,7 @@ use syntect::highlighting::Color as SyntectColor;
 use crate::app::{self, App};
 use crate::int::highlighting::convert_syn_region_to_span;
 
-use super::icons::{icon_for_file, File};
+use devicons::{icon_for_file, File};
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
@@ -133,7 +133,7 @@ pub fn ui(frame: &mut Frame, app: &mut App) {
                 ),
             );
         }
-        let file_icon = icon_for_file(&File::new(&r.path));
+        let file_icon = icon_for_file(&File::new(&r.path), None);
         let mut line_spans = vec![
             Span::styled(
                 format!("{}{}", file_icon.icon, ' '),

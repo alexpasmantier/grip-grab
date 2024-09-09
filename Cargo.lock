@@ -359,6 +359,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "devicons"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "317539db7bbc38c45601efd38e6b6f2f0e79aab12e7b54427a830166d50387f2"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
 name = "directories"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -545,6 +554,7 @@ dependencies = [
  "anyhow",
  "clap",
  "crossbeam",
+ "devicons",
  "directories",
  "grep",
  "ignore",
