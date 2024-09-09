@@ -6,6 +6,7 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{io, thread};
 use syntect::highlighting::ThemeSet;
+use tracing::info;
 
 use app::file_results_to_ui_results;
 use clap::Parser;
@@ -200,8 +201,13 @@ fn search(
 const MAX_RESULTS_DISPLAY_COUNT: usize = 1000;
 const MIN_SEARCH_PATTERN_LEN: usize = 2;
 const KEY_REFRESH_RATE: Duration = Duration::from_millis(15);
+const SLEEP_TIMEOUT: Duration = Duration::from_millis(2000);
+const FRAMES_PER_SECOND: u32 = 60;
+const SLEEP_FRAMES_PER_SECOND: u32 = 15;
+const MAX_FED_RESULTS_PER_CYCLE: usize = 500;
 
 fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
+    let mut last_tick = Instant::now();
     let mut running_job_tx: Option<Arc<Mutex<mpsc::Sender<_>>>> = None;
     let mut should_draw = true;
     let mut last_key = (
@@ -213,9 +219,16 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
         },
         Instant::now(),
     );
+    let mut frames_per_second = FRAMES_PER_SECOND;
+    let mut last_significant_event = Instant::now();
+    let mut sleeping = false;
+    let mut fed_results;
 
     loop {
         if poll(Duration::from_millis(0))? {
+            last_significant_event = Instant::now();
+            sleeping = false;
+            frames_per_second = FRAMES_PER_SECOND;
             if let Event::Key(key) = event::read()? {
                 if !(key.kind == event::KeyEventKind::Release) {
                     if key == last_key.0 {
@@ -241,6 +254,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
         if app.input.value() != app.pattern {
             if app.input.value().len() >= MIN_SEARCH_PATTERN_LEN {
                 if let Some(tx) = running_job_tx {
+                    info!("sending stop signal to message passing thread");
                     tx.lock().unwrap().send(()).unwrap();
                 }
                 let (tx, rx) = mpsc::channel();
@@ -255,11 +269,14 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                 let new_pattern = app.input.value().to_string();
                 let _search_handle = {
                     thread::spawn(move || {
+                        info!("search thread started");
                         let _ = search(&target_paths, &new_pattern, None, srq_search_handle);
+                        info!("search thread stopped");
                     })
                 };
                 let _results_handle = {
                     thread::spawn(move || {
+                        info!("message passing thread started");
                         while rx.try_recv().is_err() {
                             if let Some(file_results) = srq_results_handle.pop() {
                                 file_results_to_ui_results(file_results)
@@ -269,6 +286,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                                     });
                             }
                         }
+                        info!("message passing thread stopped");
                     })
                 };
             } else {
@@ -281,12 +299,15 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
         }
 
         // handle search results
-        while !app.results_queue.is_empty() {
+        fed_results = 0;
+        while !app.results_queue.is_empty() && fed_results < MAX_FED_RESULTS_PER_CYCLE {
             if app.results_list.results.len() < MAX_RESULTS_DISPLAY_COUNT {
                 if let Some(result) = app.results_queue.pop() {
                     app.results_list.results.push(result);
+                    fed_results += 1;
                     should_draw = true;
                 }
+                last_significant_event = Instant::now();
             } else {
                 should_draw = true;
                 break;
@@ -309,6 +330,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                     || result.path != last_selected.path
                 {
                     if result.path != last_selected.path {
+                        info!("computing highlights for new file");
                         app.compute_highlights(&result.path);
                         app.preview_state.file_name =
                             Some(result.path.to_string_lossy().to_string());
@@ -319,6 +341,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                 app.selected_result = Some(result);
             } else {
                 app.set_scroll_for_result(&result);
+                info!("computing highlights for new file");
                 app.compute_highlights(&result.path);
                 app.selected_result = Some(result);
                 app.preview_state.file_name = Some(
@@ -332,9 +355,15 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                 should_draw = true;
             }
         }
-        if should_draw {
+        if should_draw && last_tick.elapsed() >= Duration::from_secs(1) / frames_per_second {
+            last_tick = Instant::now();
             terminal.draw(|f| ui(f, app))?;
             should_draw = false;
+        }
+        if !sleeping && last_significant_event.elapsed() >= SLEEP_TIMEOUT {
+            info!("sleeping");
+            frames_per_second = SLEEP_FRAMES_PER_SECOND;
+            sleeping = true;
         }
     }
 }

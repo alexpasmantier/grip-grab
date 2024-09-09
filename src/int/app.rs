@@ -45,7 +45,7 @@ pub fn file_results_to_ui_results(file_result: FileResults) -> Vec<Result> {
         .map(|r: &SearchResult| Result {
             path: path.clone(),
             line_number: r.line_number as usize,
-            line: r.line.clone(),
+            line: r.line.trim_end().to_string(),
             matches: r.matches.clone(),
         })
         .collect()
@@ -237,7 +237,7 @@ impl App {
                 {
                     let line_regions = highlighter
                         .highlight_lines
-                        .highlight_line(&line, &self.syntax_set)
+                        .highlight_line(&line.trim_end(), &self.syntax_set)
                         .unwrap();
 
                     let mut cloned_regions = Vec::new();
