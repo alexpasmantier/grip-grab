@@ -47,6 +47,10 @@ fn get_border_style(focused: bool) -> Style {
     }
 }
 
+// UI size
+const UI_WIDTH_PERCENT: u16 = 100;
+const UI_HEIGHT_PERCENT: u16 = 100;
+
 // input colors
 const DEFAULT_INPUT_FG: Color = Color::Rgb(200, 200, 200);
 const DEFAULT_RESULTS_COUNT_FG: Color = Color::Rgb(170, 170, 170);
@@ -62,7 +66,7 @@ const DEFAULT_PREVIEW_GUTTER_SELECTED_FG: Color = Color::Rgb(255, 150, 150);
 const FOUR_SPACES: &str = "    ";
 
 pub fn ui(frame: &mut Frame, app: &mut App) {
-    let main_block = centered_rect(80, 80, frame.area());
+    let main_block = centered_rect(UI_WIDTH_PERCENT, UI_HEIGHT_PERCENT, frame.area());
 
     // split the main block into two vertical chunks
     let chunks = Layout::default()

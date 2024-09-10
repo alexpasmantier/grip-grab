@@ -205,7 +205,7 @@ const KEY_REFRESH_RATE: Duration = Duration::from_millis(15);
 const SLEEP_TIMEOUT: Duration = Duration::from_millis(2000);
 const FRAMES_PER_SECOND: u32 = 60;
 const SLEEP_FRAMES_PER_SECOND: u32 = 15;
-const MAX_FED_RESULTS_PER_CYCLE: usize = 500;
+const MAX_FED_RESULTS_PER_CYCLE: usize = 100;
 
 fn run_app<'a>(terminal: &mut Terminal, app: &mut App) -> io::Result<bool> {
     let mut last_tick = Instant::now();
@@ -356,7 +356,7 @@ fn run_app<'a>(terminal: &mut Terminal, app: &mut App) -> io::Result<bool> {
                 should_draw = true;
             }
         }
-        if should_draw && last_tick.elapsed() >= Duration::from_secs(1) / frames_per_second {
+        if should_draw || last_tick.elapsed() >= Duration::from_secs(1) / frames_per_second {
             last_tick = Instant::now();
             terminal.draw(|f| ui(f, app))?;
             should_draw = false;
