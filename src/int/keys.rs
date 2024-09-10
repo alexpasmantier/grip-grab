@@ -1,10 +1,22 @@
-use ratatui::crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
+use ratatui::crossterm::{
+    event::{Event, KeyCode, KeyEvent, KeyModifiers},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
+};
+use ratatui::prelude::CrosstermBackend;
+use std::io::{stdout, Result};
+use std::process::Command;
+use tracing::info;
 
 use crate::int::input::backend::EventHandler;
 
 use crate::app::{self, App};
 
-pub fn handle_key_event(key: KeyEvent, app: &mut App) {
+use super::editor::get_default_editor;
+
+type Terminal = ratatui::Terminal<CrosstermBackend<std::io::Stdout>>;
+
+pub fn handle_key_event(key: KeyEvent, app: &mut App, terminal: &mut Terminal) {
     // global key bindings
     match key {
         // quitting the app
@@ -96,6 +108,7 @@ pub fn handle_key_event(key: KeyEvent, app: &mut App) {
                     ..key
                 },
                 app,
+                terminal,
             );
         }
         KeyEvent {
@@ -110,6 +123,7 @@ pub fn handle_key_event(key: KeyEvent, app: &mut App) {
                     ..key
                 },
                 app,
+                terminal,
             );
         }
         _ => {}
@@ -124,7 +138,7 @@ pub fn handle_key_event(key: KeyEvent, app: &mut App) {
             handle_results_key_event(key, app);
         }
         app::CurrentBlock::Preview => {
-            handle_preview_key_event(key, app);
+            handle_preview_key_event(key, app, terminal);
         }
     }
 }
@@ -172,7 +186,7 @@ fn handle_results_key_event(key: KeyEvent, app: &mut App) {
     }
 }
 
-fn handle_preview_key_event(key: KeyEvent, app: &mut App) {
+fn handle_preview_key_event(key: KeyEvent, app: &mut App, terminal: &mut Terminal) {
     match key {
         KeyEvent {
             code: KeyCode::Up | KeyCode::Char('k'),
@@ -202,6 +216,44 @@ fn handle_preview_key_event(key: KeyEvent, app: &mut App) {
         } => {
             app.scroll_preview_up(20);
         }
+        KeyEvent {
+            code: KeyCode::Char('e'),
+            modifiers: KeyModifiers::NONE,
+            ..
+        } => {
+            run_editor(terminal, app).unwrap();
+        }
         _ => {}
     }
+}
+
+const VI: &str = "vi";
+const VIM: &str = "vim";
+const NVIM: &str = "nvim";
+
+fn run_editor(terminal: &mut Terminal, app: &mut App) -> Result<()> {
+    stdout().execute(LeaveAlternateScreen)?;
+    disable_raw_mode()?;
+    if let Some(selected_result) = &app.selected_result {
+        if let Ok(editor) = get_default_editor() {
+            // TODO: maybe add extra logic for opening other editors at a specific line
+            match editor.as_str() {
+                VI | VIM | NVIM => {
+                    Command::new(editor)
+                        .arg(format!("+{}", selected_result.line_number))
+                        .arg(selected_result.path.canonicalize().unwrap())
+                        .status()?;
+                }
+                _ => {
+                    Command::new(editor)
+                        .arg(selected_result.path.canonicalize().unwrap())
+                        .status()?;
+                }
+            }
+        }
+    }
+    stdout().execute(EnterAlternateScreen)?;
+    enable_raw_mode()?;
+    terminal.clear()?;
+    Ok(())
 }

@@ -1,12 +1,13 @@
 use int::app::App;
 use logging::initialize_logging;
+use ratatui::prelude::CrosstermBackend;
 use std::io::{stdin, Read};
 use std::path::PathBuf;
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::{Duration, Instant};
 use std::{io, thread};
 use syntect::highlighting::ThemeSet;
-use tracing::info;
+use tracing::debug;
 
 use app::file_results_to_ui_results;
 use clap::Parser;
@@ -14,9 +15,7 @@ use clap::Parser;
 use crossbeam::queue::SegQueue;
 use grep::regex::RegexMatcher;
 use ignore::DirEntry;
-use ratatui::backend::Backend;
 use ratatui::crossterm::event::{self, poll, Event};
-use ratatui::Terminal;
 
 use crate::cli::cli::{process_cli_args, Cli, Commands, PostProcessedCli};
 use crate::fs::fs::{is_readable_stdin, walk_builder};
@@ -35,6 +34,8 @@ mod printer;
 mod search;
 mod upgrade;
 mod utils;
+
+type Terminal = ratatui::Terminal<CrosstermBackend<std::io::Stdout>>;
 
 pub fn main() -> anyhow::Result<()> {
     let cli_args = process_cli_args(Cli::parse())?;
@@ -206,7 +207,7 @@ const FRAMES_PER_SECOND: u32 = 60;
 const SLEEP_FRAMES_PER_SECOND: u32 = 15;
 const MAX_FED_RESULTS_PER_CYCLE: usize = 500;
 
-fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Result<bool> {
+fn run_app<'a>(terminal: &mut Terminal, app: &mut App) -> io::Result<bool> {
     let mut last_tick = Instant::now();
     let mut running_job_tx: Option<Arc<Mutex<mpsc::Sender<_>>>> = None;
     let mut should_draw = true;
@@ -234,12 +235,12 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                     if key == last_key.0 {
                         if last_key.1.elapsed() >= KEY_REFRESH_RATE {
                             last_key = (key, Instant::now());
-                            handle_key_event(key, app);
+                            handle_key_event(key, app, terminal);
                             should_draw = true;
                         }
                     } else {
                         last_key = (key, Instant::now());
-                        handle_key_event(key, app);
+                        handle_key_event(key, app, terminal);
                         should_draw = true;
                     }
                 }
@@ -254,7 +255,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
         if app.input.value() != app.pattern {
             if app.input.value().len() >= MIN_SEARCH_PATTERN_LEN {
                 if let Some(tx) = running_job_tx {
-                    info!("sending stop signal to message passing thread");
+                    debug!("sending stop signal to message passing thread");
                     tx.lock().unwrap().send(()).unwrap();
                 }
                 let (tx, rx) = mpsc::channel();
@@ -269,14 +270,14 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                 let new_pattern = app.input.value().to_string();
                 let _search_handle = {
                     thread::spawn(move || {
-                        info!("search thread started");
+                        debug!("search thread started");
                         let _ = search(&target_paths, &new_pattern, None, srq_search_handle);
-                        info!("search thread stopped");
+                        debug!("search thread stopped");
                     })
                 };
                 let _results_handle = {
                     thread::spawn(move || {
-                        info!("message passing thread started");
+                        debug!("message passing thread started");
                         while rx.try_recv().is_err() {
                             if let Some(file_results) = srq_results_handle.pop() {
                                 file_results_to_ui_results(file_results)
@@ -286,7 +287,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                                     });
                             }
                         }
-                        info!("message passing thread stopped");
+                        debug!("message passing thread stopped");
                     })
                 };
             } else {
@@ -330,7 +331,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                     || result.path != last_selected.path
                 {
                     if result.path != last_selected.path {
-                        info!("computing highlights for new file");
+                        debug!("computing highlights for new file");
                         app.compute_highlights(&result.path);
                         app.preview_state.file_name =
                             Some(result.path.to_string_lossy().to_string());
@@ -341,7 +342,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
                 app.selected_result = Some(result);
             } else {
                 app.set_scroll_for_result(&result);
-                info!("computing highlights for new file");
+                debug!("computing highlights for new file");
                 app.compute_highlights(&result.path);
                 app.selected_result = Some(result);
                 app.preview_state.file_name = Some(
@@ -361,7 +362,7 @@ fn run_app<'a, B: Backend>(terminal: &mut Terminal<B>, app: &mut App) -> io::Res
             should_draw = false;
         }
         if !sleeping && last_significant_event.elapsed() >= SLEEP_TIMEOUT {
-            info!("sleeping");
+            debug!("sleeping");
             frames_per_second = SLEEP_FRAMES_PER_SECOND;
             sleeping = true;
         }

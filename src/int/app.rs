@@ -9,6 +9,7 @@ use ratatui::widgets::ListState;
 use syntect::easy::HighlightFile;
 use syntect::highlighting::{Style, Theme};
 use syntect::parsing::SyntaxSet;
+use tracing::debug;
 
 use crate::cli::cli::DEFAULT_PATH;
 use crate::int::input::Input;
@@ -228,6 +229,7 @@ impl App {
 
     pub fn compute_highlights(&mut self, file_path: &Path) {
         if self.preview_cache.get(file_path).is_none() {
+            debug!("Computing highlights for {:?}", file_path);
             let mut highlighter =
                 HighlightFile::new(file_path, &self.syntax_set, &self.syntect_preview_theme)
                     .unwrap();
@@ -237,13 +239,15 @@ impl App {
                 {
                     let line_regions = highlighter
                         .highlight_lines
-                        .highlight_line(&line.trim_end(), &self.syntax_set)
+                        .highlight_line(&line, &self.syntax_set)
                         .unwrap();
 
                     let mut cloned_regions = Vec::new();
-                    for region in line_regions.iter() {
+                    for region in line_regions.iter().take(line.len() - 1) {
                         cloned_regions.push((region.0, region.1.to_owned()));
                     }
+                    let last_region = line_regions.last().unwrap();
+                    cloned_regions.push((last_region.0, last_region.1.trim_end().to_owned()));
 
                     highlighted_lines.push(cloned_regions);
                 }
