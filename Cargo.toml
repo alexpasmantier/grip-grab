@@ -1,13 +1,13 @@
 [package]
-name = "grip-grab"
+name = "grip-grep"
 version = "0.3.0"
 edition = "2021"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 license = "Apache-2.0"
 description = "A faster, more lightweight ripgrep alternative."
 readme = "README.md"
-homepage = "https://github.com/alexpasmantier/grip-grab"
-repository = "https://github.com/alexpasmantier/grip-grab"
+homepage = "https://github.com/alexpasmantier/grip-grep"
+repository = "https://github.com/alexpasmantier/grip-grep"
 keywords = ["cli", "search", "grep", "ripgrep", "rust"]
 categories = [
   "command-line-utilities",

@@ -296,7 +296,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "grip-grab"
+name = "grip-grep"
 version = "0.3.0"
 dependencies = [
  "anyhow",
