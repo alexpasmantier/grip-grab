@@ -14,10 +14,10 @@ https://github.com/user-attachments/assets/0bce247c-7a03-4f62-a29f-51da3c6a54b8
 ## Installation
 ### Using Cargo
 ```bash
-cargo install grip-grep
+cargo install grip-grab
 ```
 
-**NOTE:** if using zsh with the `git` plugin, you might need to unalias `gg` in order for grip-grep's `gg` to work:
+**NOTE:** if using zsh with the `git` plugin, you might need to unalias `gg` in order for grip-grab's `gg` to work:
 ```sh
 echo 'unalias gg' >> ~/.zshrc
 source ~/.zshrc
