@@ -1,7 +1,7 @@
 
-# grip-grep (`gg`) 🧤
+# grip-grab (`gg`) 🧤
 
-Find code. Fast.
+A somewhat faster ripgrep alternative.
 
 ```sh
 ❯ gg "\b(Read|Write)Half[^<]" tokio/src
