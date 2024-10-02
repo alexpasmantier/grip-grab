@@ -1,3 +1,4 @@
+![Crates.io Total Downloads](https://img.shields.io/crates/d/grip-grab)
 
 # grip-grab (`gg`) 🧤
 
