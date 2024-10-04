@@ -2,13 +2,17 @@
 
 # grip-grab (`gg`) 🧤
 
-A faster, more lightweight ripgrep alternative for day to day usecases.
+A fast, more lightweight ripgrep alternative for daily use cases.
 
 ```sh
 ❯ gg "\b(Read|Write)Half[^<]" tokio/src
 ```
 
-https://github.com/user-attachments/assets/0bce247c-7a03-4f62-a29f-51da3c6a54b8
+
+
+https://github.com/user-attachments/assets/13406bea-b6f2-4629-b814-366713a8d90d
+
+
 
 
 
@@ -233,7 +237,7 @@ https://github.com/user-attachments/assets/8620a805-4b2a-498e-a0a0-e8b6835bc9cd
 ```sh
 ❯ gg "\b(Read|Write)Half[^<]" tokio/src
 ```
-<img width="1973" alt="Screenshot 2024-07-26 at 14 00 31" src="https://github.com/user-attachments/assets/78d408a2-9f00-4c6d-95c0-6af6211ab40d">
+<img width="1838" alt="Screenshot 2024-10-04 at 14 48 44" src="https://github.com/user-attachments/assets/7ef9fecf-4a00-4be1-90bc-8579e49bced2">
 
 
 ### JSON output
@@ -248,7 +252,8 @@ https://github.com/user-attachments/assets/8620a805-4b2a-498e-a0a0-e8b6835bc9cd
 ```sh
 ❯ gg -f "\b(Read|Write)Half[^<]" tokio/src
 ```
-<img width="1713" alt="Screenshot 2024-07-24 at 13 29 52" src="https://github.com/user-attachments/assets/9e5f5cee-218e-4213-bfeb-25df3d5a2a9e">
+<img width="684" alt="Screenshot 2024-10-04 at 14 49 44" src="https://github.com/user-attachments/assets/150006c9-7ba9-42a9-8d6c-ef46fde39ede">
+
 
 ## Notes
 This lightweight utility is largely based on a couple of crates from the extraordinary [ripgrep](https://github.com/BurntSushi/ripgrep) tool.

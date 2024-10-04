@@ -56,7 +56,7 @@ pub fn main() -> anyhow::Result<()> {
                         path: PathBuf::from("stdin"),
                         results: search_results,
                     })?;
-                    printer.print()?;
+                    printer.wipeout()?;
                 }
                 Err(err) => {
                     eprintln!("Error: {}", err);
@@ -118,9 +118,8 @@ pub fn main() -> anyhow::Result<()> {
 
     while let Ok(result) = printer_queue.recv() {
         printer.write(result)?;
-        printer.print()?;
     }
 
-    //printer.print()?;
+    printer.wipeout()?;
     Ok(())
 }

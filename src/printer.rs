@@ -98,8 +98,12 @@ impl ResultsPrinter {
         }
     }
 
+    const MAX_BUFFER_SIZE: usize = 1024;
+
     pub fn write(&mut self, results: FileResults) -> Result<()> {
-        //    path = results.path.strip_prefix(self.cwd.clone()).unwrap();
+        if self.buffer.len() > Self::MAX_BUFFER_SIZE {
+            self.buffer.flush()?;
+        }
         match self.config.mode {
             PrintMode::Text => self.write_colored_text_results(&results.path, results.results),
             PrintMode::Json => self.writeln_to_buffer(serde_json::to_string(&FileResults {
@@ -195,7 +199,7 @@ impl ResultsPrinter {
         writeln!(self.buffer, "")
     }
 
-    pub fn print(&mut self) -> Result<()> {
+    pub fn wipeout(&mut self) -> Result<()> {
         self.buffer.flush()?;
         self.reset_ansi_formatting()
     }
