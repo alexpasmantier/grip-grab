@@ -1,6 +1,6 @@
 [package]
 name = "grip-grab"
-version = "0.5.3"
+version = "0.5.4"
 edition = "2021"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 license = "Apache-2.0"
@@ -30,3 +30,12 @@ termcolor = "1.4.1"
 [[bin]]
 name = "gg"
 path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+debug = "none"
+strip = "symbols"
+debug-assertions = false
+overflow-checks = false
+lto = "fat"
+panic = "abort"
