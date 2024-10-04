@@ -111,6 +111,7 @@ pub fn main() -> anyhow::Result<()> {
         absolute_paths: cli_args.absolute_paths,
         colored_output: cli_args.colored_output,
         disable_hyperlinks: cli_args.disable_hyperlinks,
+        disable_devicons: cli_args.disable_devicons,
         ..Default::default()
     };
     let mut printer = ResultsPrinter::new(printer_config);

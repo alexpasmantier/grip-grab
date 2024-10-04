@@ -1,3 +1,4 @@
+use devicons::FileIcon;
 use std::{
     env::current_dir,
     fmt,
@@ -29,6 +30,7 @@ pub struct PrinterConfig {
     pub color_specs: ColorSpecs,
     pub absolute_paths: bool,
     pub disable_hyperlinks: bool,
+    pub disable_devicons: bool,
 }
 
 impl Default for PrinterConfig {
@@ -39,6 +41,7 @@ impl Default for PrinterConfig {
             color_specs: ColorSpecs::default(),
             absolute_paths: false,
             disable_hyperlinks: false,
+            disable_devicons: false,
         }
     }
 }
@@ -118,6 +121,14 @@ impl ResultsPrinter {
     }
 
     fn write_colored_path(&mut self, path: &Path) -> Result<()> {
+        if !self.config.disable_devicons {
+            let icon = FileIcon::from(path);
+            self.buffer.set_color(ColorSpec::new().set_fg(Some(
+                devicons_to_termcolor_color(&icon.color).unwrap_or(Color::White),
+            )))?;
+            write!(&mut self.buffer, "{} ", icon.icon)?;
+        }
+
         self.buffer.set_color(&self.config.color_specs.paths)?;
         let display_path = if self.config.absolute_paths {
             path.to_string_lossy()
@@ -127,14 +138,14 @@ impl ResultsPrinter {
             path.to_string_lossy()
         };
         if self.config.disable_hyperlinks {
-            return writeln!(&mut self.buffer, "{}", display_path);
+            return write!(&mut self.buffer, "{}\n", display_path);
         }
         let path_str = path.to_string_lossy();
         let link = Hyperlink {
             uri: &format!("file://{}", path_str),
             id: None,
         };
-        writeln!(&mut self.buffer, "{link}{}{link:#}", display_path)
+        write!(&mut self.buffer, "{link}{}{link:#}\n", display_path)
     }
 
     fn write_colored_search_results(&mut self, results: Vec<SearchResult>) -> Result<()> {
@@ -194,6 +205,14 @@ impl ResultsPrinter {
         write!(&mut self.buffer, "")?;
         self.writer.print(&self.buffer)
     }
+}
+
+fn devicons_to_termcolor_color(d_color: &str) -> Option<Color> {
+    d_color.strip_prefix("#").and_then(|hex| {
+        u32::from_str_radix(hex, 16)
+            .ok()
+            .map(|c| Color::Rgb((c >> 16) as u8, (c >> 8) as u8, c as u8))
+    })
 }
 
 #[derive(Default, Debug, PartialEq, Clone)]

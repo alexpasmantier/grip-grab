@@ -20,6 +20,7 @@ categories = [
 [dependencies]
 anyhow = "1.0.86"
 clap = { version = "4.5.9", features = ["derive"] }
+devicons = "0.6.7"
 grep = "0.3.1"
 ignore = "0.4.22"
 serde = { version = "1.0.204", features = ["derive"] }

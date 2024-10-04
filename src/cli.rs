@@ -64,6 +64,10 @@ pub struct Cli {
     #[clap(short = 'H', long, default_value_t = false)]
     pub disable_hyperlinks: bool,
 
+    /// disable devicons in output (defaults to false)
+    #[clap(short = 'D', long, default_value_t = false)]
+    pub disable_devicons: bool,
+
     /// Subcommands
     #[clap(subcommand)]
     pub sub_command: Option<Commands>,
@@ -120,6 +124,7 @@ pub struct PostProcessedCli {
     pub colored_output: bool,
     pub filter_filetypes: Vec<String>,
     pub disable_hyperlinks: bool,
+    pub disable_devicons: bool,
     pub sub_command: Option<Commands>,
 }
 
@@ -137,6 +142,7 @@ impl Default for PostProcessedCli {
             colored_output: true,
             filter_filetypes: Vec::new(),
             disable_hyperlinks: false,
+            disable_devicons: false,
             sub_command: None,
         }
     }
@@ -177,6 +183,7 @@ pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
         colored_output: !cli.disable_colored_output,
         filter_filetypes: cli.filter_filetypes,
         disable_hyperlinks: cli.disable_hyperlinks,
+        disable_devicons: cli.disable_devicons,
         sub_command: cli.sub_command,
     })
 }
