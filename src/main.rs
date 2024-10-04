@@ -1,11 +1,10 @@
 use std::io::{stdin, Read};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{mpsc, Arc};
 
 use clap::Parser;
 
 use cli::Commands;
-use crossbeam::queue::SegQueue;
 use fs::is_readable_stdin;
 use grep::regex::RegexMatcher;
 use ignore::DirEntry;
@@ -67,8 +66,6 @@ pub fn main() -> anyhow::Result<()> {
         }
     }
 
-    let queue: Arc<SegQueue<FileResults>> = Arc::new(SegQueue::new());
-
     let haystack_builder = walk_builder(
         cli_args.paths.iter().map(|p| p.as_path()).collect(),
         &cli_args.ignored_paths,
@@ -77,31 +74,36 @@ pub fn main() -> anyhow::Result<()> {
         cli_args.filter_filetypes,
     );
     let matcher: Arc<RegexMatcher> = Arc::new(build_matcher(&cli_args.patterns)?);
-    haystack_builder.build_parallel().run(|| {
-        let matcher = Arc::clone(&matcher);
-        let mut searcher = build_searcher(cli_args.multiline);
-        let queue = Arc::clone(&queue);
-        Box::new(move |entry: Result<DirEntry, ignore::Error>| match entry {
-            Ok(entry) => {
-                let file_type = entry.file_type().unwrap();
-                if !file_type.is_dir() {
-                    let path = entry.path().to_path_buf();
-                    match search_file(path, &matcher, &mut searcher) {
-                        Ok(file_results) => {
-                            if !file_results.is_empty() {
-                                queue.push(file_results);
+
+    let (tx, printer_queue) = mpsc::channel();
+
+    std::thread::spawn(move || {
+        haystack_builder.build_parallel().run(|| {
+            let matcher = Arc::clone(&matcher);
+            let mut searcher = build_searcher(cli_args.multiline);
+            let tx = tx.clone();
+            Box::new(move |entry: Result<DirEntry, ignore::Error>| match entry {
+                Ok(entry) => {
+                    let file_type = entry.file_type().unwrap();
+                    if !file_type.is_dir() {
+                        let path = entry.path().to_path_buf();
+                        match search_file(path, &matcher, &mut searcher) {
+                            Ok(file_results) => {
+                                if !file_results.is_empty() {
+                                    tx.send(file_results).unwrap();
+                                }
                             }
+                            Err(_err) => (),
                         }
-                        Err(_err) => (),
                     }
+                    ignore::WalkState::Continue
                 }
-                ignore::WalkState::Continue
-            }
-            Err(err) => {
-                eprintln!("Error: {}", err);
-                ignore::WalkState::Continue
-            }
-        })
+                Err(err) => {
+                    eprintln!("Error: {}", err);
+                    ignore::WalkState::Continue
+                }
+            })
+        });
     });
 
     let printer_config = PrinterConfig {
@@ -112,12 +114,12 @@ pub fn main() -> anyhow::Result<()> {
         ..Default::default()
     };
     let mut printer = ResultsPrinter::new(printer_config);
-    let printer_queue = Arc::into_inner(queue).unwrap();
-    while !printer_queue.is_empty() {
-        let file_results = printer_queue.pop().unwrap();
-        printer.write(file_results)?;
+
+    while let Ok(result) = printer_queue.recv() {
+        printer.write(result)?;
+        printer.print()?;
     }
 
-    printer.print()?;
+    //printer.print()?;
     Ok(())
 }
