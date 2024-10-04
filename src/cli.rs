@@ -4,9 +4,9 @@ use crate::{printer::PrintMode, utils};
 use clap::{ArgAction, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(name = "grip-grep")]
+#[command(name = "grip-grab")]
 #[command(bin_name = "gg")]
-#[command(version, about = "A somewhat faster, more lightweight, ripgrep-inspired alternative.", long_about = None, arg_required_else_help=true)]
+#[command(version, about = "A faster, more lightweight ripgrep alternative for day to day usecases.", long_about = None, arg_required_else_help=true)]
 pub struct Cli {
     /// a regex pattern to search for
     #[arg(num_args = 1)]

@@ -17,7 +17,7 @@ pub fn upgrade_gg(force: bool) {
     println!("└─────────────────────────────────────────┘\n");
 
     let mut command = Command::new("cargo");
-    command.arg("install").arg("grip-grep");
+    command.arg("install").arg("grip-grab");
     if force {
         command.arg("--force");
     }
