@@ -2,7 +2,7 @@
 
 # grip-grab (`gg`) 🧤
 
-A somewhat faster ripgrep alternative.
+A faster, more lightweight ripgrep alternative.
 
 ```sh
 ❯ gg "\b(Read|Write)Half[^<]" tokio/src
