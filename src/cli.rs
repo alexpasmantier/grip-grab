@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::{printer::PrintMode, utils};
 use clap::{ArgAction, Parser, Subcommand};
+use thiserror::Error;
 
 #[derive(Parser, Debug)]
 #[command(name = "grip-grab")]
@@ -148,7 +149,11 @@ impl Default for PostProcessedCli {
     }
 }
 
-pub fn process_cli_args(mut cli: Cli) -> anyhow::Result<PostProcessedCli> {
+#[derive(Error, Debug)]
+#[error("Error processing CLI arguments")]
+pub struct CliProcessingError {}
+
+pub fn process_cli_args(mut cli: Cli) -> Result<PostProcessedCli, CliProcessingError> {
     cli.validate();
 
     if cli.paths.is_empty() {

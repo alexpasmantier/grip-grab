@@ -1,5 +1,4 @@
-use anyhow::Result;
-use ignore::{types::TypesBuilder, WalkBuilder};
+use ignore::{types::TypesBuilder, Error, WalkBuilder};
 
 use std::path::{Path, PathBuf};
 
@@ -43,7 +42,7 @@ pub fn walk_builder(
     builder
 }
 
-fn add_custom_filetypes(types_builder: &mut TypesBuilder) -> Result<()> {
+fn add_custom_filetypes(types_builder: &mut TypesBuilder) -> Result<(), Error> {
     Ok(types_builder.add("pystrict", "*.py")?)
 }
 

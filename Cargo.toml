@@ -1,6 +1,6 @@
 [package]
 name = "grip-grab"
-version = "0.5.4"
+version = "0.5.5"
 edition = "2021"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 license = "Apache-2.0"
@@ -18,7 +18,6 @@ categories = [
 
 
 [dependencies]
-anyhow = "1.0.86"
 clap = { version = "4.5.9", features = ["derive"] }
 devicons = "0.6.7"
 grep = "0.3.1"
@@ -26,10 +25,20 @@ ignore = "0.4.22"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
 termcolor = "1.4.1"
+thiserror = "1.0.64"
 
 [[bin]]
 name = "gg"
 path = "src/main.rs"
+
+
+[features]
+default = []
+upgrade = []
+
+[profile.dev]
+opt-level = 0
+debug = true
 
 [profile.release]
 opt-level = 3

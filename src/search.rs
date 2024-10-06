@@ -1,9 +1,9 @@
-use std::fmt;
+use std::{fmt, io};
 use std::{path::PathBuf, slice::Iter};
 
 use grep::{
     matcher::{Match, Matcher},
-    regex::{RegexMatcher, RegexMatcherBuilder},
+    regex::{self, RegexMatcher, RegexMatcherBuilder},
     searcher::{sinks::UTF8, Searcher, SearcherBuilder},
 };
 use serde::Serialize;
@@ -185,7 +185,7 @@ pub fn search_file<'a>(
     path: PathBuf,
     matcher: &RegexMatcher,
     searcher: &mut Searcher,
-) -> anyhow::Result<FileResults> {
+) -> Result<FileResults, io::Error> {
     let mut partial_results: Vec<PartialSearchResult> = Vec::new();
 
     searcher.search_path(
@@ -236,11 +236,13 @@ pub fn search_file<'a>(
     Ok(FileResults { path, results })
 }
 
+// io::Error
+// std::fmt::Display
 pub fn search_reader(
     reader: impl std::io::BufRead,
     matcher: &RegexMatcher,
     searcher: &mut Searcher,
-) -> anyhow::Result<Vec<SearchResult>> {
+) -> Result<Vec<SearchResult>, io::Error> {
     let mut results = Vec::new();
     let mut line_number = 0;
     searcher.search_reader(
@@ -266,8 +268,9 @@ pub fn search_reader(
     Ok(results)
 }
 
-pub fn build_matcher(patterns: &Vec<String>) -> anyhow::Result<RegexMatcher> {
+pub fn build_matcher(patterns: &Vec<String>) -> Result<RegexMatcher, regex::Error> {
     let builder = RegexMatcherBuilder::new();
+    // matcher Error
     Ok(builder.build_many(patterns)?)
 }
 

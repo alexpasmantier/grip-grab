@@ -1,12 +1,31 @@
-use std::{
-    io::{BufRead, BufReader},
-    process::Command,
-    thread::{self},
-};
-
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
+#[cfg(not(feature = "upgrade"))]
+pub fn upgrade_gg(_force: bool) {
+    let mut colored_stdout = StandardStream::stdout(ColorChoice::Always);
+    colored_stdout
+        .set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_italic(true))
+        .expect("Failed to set color");
+
+    println!("\n┌────────────────────────────────────────────┐");
+    println!("│ Upgrade feature is not enabled.            │");
+    println!("│ Please recompile with `upgrade` feature    │");
+    println!("│ enabled to use this feature:               │");
+    println!("│                                            │");
+    println!("│ cargo install grip-grab --features=upgrade │");
+    println!("└────────────────────────────────────────────┘\n");
+
+    colored_stdout.reset().expect("Failed to reset color");
+}
+
+#[cfg(feature = "upgrade")]
 pub fn upgrade_gg(force: bool) {
+    use std::{
+        io::{BufRead, BufReader},
+        process::Command,
+        thread::{self},
+    };
+
     let mut colored_stdout = StandardStream::stdout(ColorChoice::Always);
     colored_stdout
         .set_color(ColorSpec::new().set_fg(Some(Color::Green)).set_italic(true))

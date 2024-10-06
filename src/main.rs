@@ -1,15 +1,16 @@
-use std::io::{stdin, Read};
+use std::io::{self, stdin, Read};
 use std::path::PathBuf;
 use std::sync::{mpsc, Arc};
 
 use clap::Parser;
 
-use cli::Commands;
+use cli::{CliProcessingError, Commands};
 use fs::is_readable_stdin;
-use grep::regex::RegexMatcher;
+use grep::regex::{self, RegexMatcher};
 use ignore::DirEntry;
 use printer::PrinterConfig;
 use search::{build_searcher, search_reader};
+use thiserror::Error;
 use upgrade::upgrade_gg;
 
 use crate::cli::{process_cli_args, Cli};
@@ -24,7 +25,17 @@ mod search;
 mod upgrade;
 mod utils;
 
-pub fn main() -> anyhow::Result<()> {
+#[derive(Error, Debug)]
+pub enum GGError {
+    #[error("Erorr processing CLI arguments")]
+    Cli(#[from] CliProcessingError),
+    #[error(transparent)]
+    Io(#[from] io::Error),
+    #[error(transparent)]
+    Regex(#[from] regex::Error),
+}
+
+pub fn main() -> Result<(), GGError> {
     let cli_args = process_cli_args(Cli::parse())?;
 
     if let Some(subcommand) = cli_args.sub_command {
