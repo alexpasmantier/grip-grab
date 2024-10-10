@@ -4,7 +4,7 @@ use std::sync::{mpsc, Arc};
 
 use clap::Parser;
 
-use cli::{CliProcessingError, Commands};
+use cli::Commands;
 use fs::is_readable_stdin;
 use grep::regex::{self, RegexMatcher};
 use ignore::DirEntry;
@@ -27,8 +27,6 @@ mod utils;
 
 #[derive(Error, Debug)]
 pub enum GGError {
-    #[error("Erorr processing CLI arguments")]
-    Cli(#[from] CliProcessingError),
     #[error(transparent)]
     Io(#[from] io::Error),
     #[error(transparent)]
@@ -36,7 +34,7 @@ pub enum GGError {
 }
 
 pub fn main() -> Result<(), GGError> {
-    let cli_args = process_cli_args(Cli::parse())?;
+    let cli_args = process_cli_args(Cli::parse());
 
     if let Some(subcommand) = cli_args.sub_command {
         match subcommand {
@@ -82,7 +80,7 @@ pub fn main() -> Result<(), GGError> {
         &cli_args.ignored_paths,
         cli_args.n_threads,
         !cli_args.disregard_gitignore,
-        cli_args.filter_filetypes,
+        &cli_args.filter_filetypes,
     );
     let matcher: Arc<RegexMatcher> = Arc::new(build_matcher(&cli_args.patterns)?);
 
@@ -95,13 +93,12 @@ pub fn main() -> Result<(), GGError> {
             let tx = tx.clone();
             Box::new(move |entry: Result<DirEntry, ignore::Error>| match entry {
                 Ok(entry) => {
-                    let file_type = entry.file_type().unwrap();
-                    if !file_type.is_dir() {
+                    if !entry.path().is_dir() {
                         let path = entry.path().to_path_buf();
                         match search_file(path, &matcher, &mut searcher) {
                             Ok(file_results) => {
                                 if !file_results.is_empty() {
-                                    tx.send(file_results).unwrap();
+                                    tx.send(file_results).unwrap_or(());
                                 }
                             }
                             Err(_err) => (),

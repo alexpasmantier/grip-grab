@@ -7,7 +7,7 @@ pub fn walk_builder(
     ignored_paths: &[PathBuf],
     n_threads: usize,
     respect_gitignore: bool,
-    filter_filetypes: Vec<String>,
+    filter_filetypes: &[String],
 ) -> WalkBuilder {
     let mut builder = WalkBuilder::new(paths[0]);
     // add all paths to the builder
@@ -19,15 +19,15 @@ pub fn walk_builder(
     let mut types_builder = TypesBuilder::new();
     types_builder.add_defaults();
     add_custom_filetypes(&mut types_builder).unwrap();
-    filter_filetypes.iter().for_each(|ft| {
+    for ft in filter_filetypes {
         types_builder.select(ft);
-    });
+    }
     builder.types(types_builder.build().unwrap());
 
     // path-based filtering
     let ignored_paths = ignored_paths.to_vec();
     builder.filter_entry(move |entry| {
-        for ignore in ignored_paths.iter() {
+        for ignore in &ignored_paths {
             if entry.path() == ignore {
                 return false;
             }
@@ -43,7 +43,7 @@ pub fn walk_builder(
 }
 
 fn add_custom_filetypes(types_builder: &mut TypesBuilder) -> Result<(), Error> {
-    Ok(types_builder.add("pystrict", "*.py")?)
+    types_builder.add("pystrict", "*.py")
 }
 
 // Original code from https://github.com/BurntSushi/ripgrep/blob/e0f1000df67f82ab0e735bad40e9b45b2d774ef0/crates/cli/src/lib.rs#L249
@@ -58,25 +58,18 @@ pub fn is_readable_stdin() -> bool {
         };
 
         let stdin = std::io::stdin();
-        let fd = match stdin.as_fd().try_clone_to_owned() {
-            Ok(fd) => fd,
-            Err(_) => {
-                return false;
-            }
+        let Ok(fd) = stdin.as_fd().try_clone_to_owned() else {
+            return false;
         };
         let file = File::from(fd);
-        let md = match file.metadata() {
-            Ok(md) => md,
-            Err(_) => {
-                return false;
-            }
+        let Ok(md) = file.metadata() else {
+            return false;
         };
         let ft = md.file_type();
         let is_file = ft.is_file();
         let is_fifo = ft.is_fifo();
         let is_socket = ft.is_socket();
-        let is_readable = is_file || is_fifo || is_socket;
-        is_readable
+        is_file || is_fifo || is_socket
     }
 
     #[cfg(windows)]

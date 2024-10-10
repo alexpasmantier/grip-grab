@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use crate::{printer::PrintMode, utils};
 use clap::{ArgAction, Parser, Subcommand};
-use thiserror::Error;
 
 #[derive(Parser, Debug)]
 #[command(name = "grip-grab")]
@@ -149,11 +148,7 @@ impl Default for PostProcessedCli {
     }
 }
 
-#[derive(Error, Debug)]
-#[error("Error processing CLI arguments")]
-pub struct CliProcessingError {}
-
-pub fn process_cli_args(mut cli: Cli) -> Result<PostProcessedCli, CliProcessingError> {
+pub fn process_cli_args(mut cli: Cli) -> PostProcessedCli {
     cli.validate();
 
     if cli.paths.is_empty() {
@@ -161,16 +156,16 @@ pub fn process_cli_args(mut cli: Cli) -> Result<PostProcessedCli, CliProcessingE
     }
 
     if let Some(Commands::Upgrade { force }) = cli.sub_command {
-        return Ok(PostProcessedCli {
+        return PostProcessedCli {
             sub_command: Some(Commands::Upgrade { force }),
             ..Default::default()
-        });
+        };
     }
-    Ok(PostProcessedCli {
-        patterns: if !cli.patterns.is_empty() {
-            cli.patterns
-        } else {
+    PostProcessedCli {
+        patterns: if cli.patterns.is_empty() {
             vec![cli.pattern.unwrap()]
+        } else {
+            cli.patterns
         },
         paths: utils::resolve_paths(cli.paths),
         ignored_paths: utils::resolve_paths(cli.ignore_paths),
@@ -190,5 +185,5 @@ pub fn process_cli_args(mut cli: Cli) -> Result<PostProcessedCli, CliProcessingE
         disable_hyperlinks: cli.disable_hyperlinks,
         disable_devicons: cli.disable_devicons,
         sub_command: cli.sub_command,
-    })
+    }
 }

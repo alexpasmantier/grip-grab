@@ -105,8 +105,8 @@ impl ResultsPrinter {
             self.buffer.flush()?;
         }
         match self.config.mode {
-            PrintMode::Text => self.write_colored_text_results(&results.path, results.results),
-            PrintMode::Json => self.writeln_to_buffer(serde_json::to_string(&FileResults {
+            PrintMode::Text => self.write_colored_text_results(&results.path, &results.results),
+            PrintMode::Json => self.writeln_to_buffer(&serde_json::to_string(&FileResults {
                 path: results.path.clone(),
                 results: results.results,
             })?),
@@ -117,7 +117,7 @@ impl ResultsPrinter {
     fn write_colored_text_results(
         &mut self,
         path: &Path,
-        search_results: Vec<SearchResult>,
+        search_results: &[SearchResult],
     ) -> Result<()> {
         self.write_colored_path(path)?;
         self.write_colored_search_results(search_results)?;
@@ -128,7 +128,7 @@ impl ResultsPrinter {
         if !self.config.disable_devicons {
             let icon = FileIcon::from(path);
             self.buffer.set_color(ColorSpec::new().set_fg(Some(
-                devicons_to_termcolor_color(&icon.color).unwrap_or(Color::White),
+                devicons_to_termcolor_color(icon.color).unwrap_or(Color::White),
             )))?;
             write!(&mut self.buffer, "{} ", icon.icon)?;
         }
@@ -142,17 +142,17 @@ impl ResultsPrinter {
             path.to_string_lossy()
         };
         if self.config.disable_hyperlinks {
-            return write!(&mut self.buffer, "{}\n", display_path);
+            return writeln!(&mut self.buffer, "{display_path}");
         }
         let path_str = path.to_string_lossy();
         let link = Hyperlink {
-            uri: &format!("file://{}", path_str),
+            uri: &format!("file://{path_str}"),
             id: None,
         };
-        write!(&mut self.buffer, "{link}{}{link:#}\n", display_path)
+        writeln!(&mut self.buffer, "{link}{display_path}{link:#}",)
     }
 
-    fn write_colored_search_results(&mut self, results: Vec<SearchResult>) -> Result<()> {
+    fn write_colored_search_results(&mut self, results: &[SearchResult]) -> Result<()> {
         results.iter().try_for_each(|result| {
             self.write_colored_line(result)?;
             Ok(())
@@ -191,12 +191,14 @@ impl ResultsPrinter {
         write!(&mut self.buffer, "{}", &result.line[last_end_offset..])
     }
 
-    fn writeln_to_buffer(&mut self, text: String) -> Result<()> {
-        writeln!(self.buffer, "{}", text)
+    fn writeln_to_buffer(&mut self, text: &str) -> Result<()> {
+        writeln!(self.buffer, "{text}")
     }
 
+    const EMPTY_STRING: &str = "";
+
     fn write_newline_to_buffer(&mut self) -> Result<()> {
-        writeln!(self.buffer, "")
+        writeln!(self.buffer, "{}", Self::EMPTY_STRING)
     }
 
     pub fn wipeout(&mut self) -> Result<()> {
@@ -213,9 +215,13 @@ impl ResultsPrinter {
 
 fn devicons_to_termcolor_color(d_color: &str) -> Option<Color> {
     d_color.strip_prefix("#").and_then(|hex| {
-        u32::from_str_radix(hex, 16)
-            .ok()
-            .map(|c| Color::Rgb((c >> 16) as u8, (c >> 8) as u8, c as u8))
+        if hex.len() != 6 {
+            return None;
+        }
+        let red = u8::from_str_radix(&hex[0..2], 16).ok()?;
+        let green = u8::from_str_radix(&hex[2..4], 16).ok()?;
+        let blue = u8::from_str_radix(&hex[4..6], 16).ok()?;
+        Some(Color::Rgb(red, green, blue))
     })
 }
 

@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 use std::{fmt, io};
 use std::{path::PathBuf, slice::Iter};
 
@@ -148,7 +149,7 @@ pub struct FileResults {
 
 impl fmt::Display for FileResults {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}\n", self.path.to_string_lossy()).and_then(|_| {
+        writeln!(f, "{}\n", self.path.to_string_lossy()).and_then(|()| {
             self.results
                 .iter()
                 .try_for_each(|r| write!(f, "{}: {}", r.line_number, r.line))
@@ -181,7 +182,7 @@ struct PartialSearchResult {
     pub m: MatchRange,
 }
 
-pub fn search_file<'a>(
+pub fn search_file(
     path: PathBuf,
     matcher: &RegexMatcher,
     searcher: &mut Searcher,
@@ -189,7 +190,7 @@ pub fn search_file<'a>(
     let mut partial_results: Vec<PartialSearchResult> = Vec::new();
 
     searcher.search_path(
-        &matcher,
+        matcher,
         &path,
         UTF8(|lnum, line| {
             matcher.find_iter(line.as_bytes(), |m| {
@@ -217,9 +218,12 @@ pub fn search_file<'a>(
         line_end: partial_results[0].line_number,
         matches: vec![partial_results[0].m.clone()],
     }];
-    for partial_result in partial_results[1..].iter() {
+    for partial_result in &partial_results[1..] {
         let last_result = results.last_mut().unwrap();
-        if last_result.line_number != partial_result.line_number {
+        if last_result.line_number == partial_result.line_number {
+            last_result.matches.push(partial_result.m.clone());
+            last_result.line_end = partial_result.line_number;
+        } else {
             results.push(SearchResult {
                 line_number: partial_result.line_number,
                 line: partial_result.line.clone(),
@@ -227,17 +231,13 @@ pub fn search_file<'a>(
                 line_end: partial_result.line_number,
                 matches: vec![partial_result.m.clone()],
             });
-        } else {
-            last_result.matches.push(partial_result.m.clone());
-            last_result.line_end = partial_result.line_number;
         }
     }
 
     Ok(FileResults { path, results })
 }
 
-// io::Error
-// std::fmt::Display
+#[allow(clippy::similar_names)]
 pub fn search_reader(
     reader: impl std::io::BufRead,
     matcher: &RegexMatcher,
@@ -268,10 +268,10 @@ pub fn search_reader(
     Ok(results)
 }
 
-pub fn build_matcher(patterns: &Vec<String>) -> Result<RegexMatcher, regex::Error> {
+pub fn build_matcher(patterns: &[String]) -> Result<RegexMatcher, regex::Error> {
     let builder = RegexMatcherBuilder::new();
     // matcher Error
-    Ok(builder.build_many(patterns)?)
+    builder.build_many(patterns)
 }
 
 pub fn build_searcher(multiline: bool) -> Searcher {

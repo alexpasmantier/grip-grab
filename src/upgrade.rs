@@ -64,8 +64,8 @@ pub fn upgrade_gg(force: bool) {
         let reader = BufReader::new(stdout);
         for line in reader.lines() {
             match line {
-                Ok(line) => println!("{}", line),
-                Err(e) => eprintln!("Error reading stdout: {}", e),
+                Ok(line) => println!("{line}"),
+                Err(e) => eprintln!("Error reading stdout: {e}"),
             }
         }
     });
@@ -74,8 +74,8 @@ pub fn upgrade_gg(force: bool) {
         let reader = BufReader::new(stderr);
         for line in reader.lines() {
             match line {
-                Ok(line) => eprintln!("{}", line),
-                Err(e) => eprintln!("Error reading stderr: {}", e),
+                Ok(line) => eprintln!("{line}"),
+                Err(e) => eprintln!("Error reading stderr: {e}"),
             }
         }
     });
