@@ -1,4 +1,5 @@
-![Crates.io Total Downloads](https://img.shields.io/crates/d/grip-grab)
+![Crates.io Total Downloads](https://img.shields.io/crates/d/grip-grab) ![Crates.io Version](https://img.shields.io/crates/v/grip-grab) ![GitHub License](https://img.shields.io/github/license/alexpasmantier/grip-grab)
+
 
 # grip-grab (`gg`) 🧤
 
