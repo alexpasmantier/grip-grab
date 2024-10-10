@@ -107,7 +107,7 @@ impl ResultsPrinter {
         match self.config.mode {
             PrintMode::Text => self.write_colored_text_results(&results.path, results.results),
             PrintMode::Json => self.writeln_to_buffer(serde_json::to_string(&FileResults {
-                path: results.path.to_path_buf(),
+                path: results.path.clone(),
                 results: results.results,
             })?),
             PrintMode::Files => self.write_colored_path(&results.path),

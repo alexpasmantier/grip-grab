@@ -70,7 +70,7 @@ pub fn main() -> Result<(), GGError> {
                     printer.wipeout()?;
                 }
                 Err(err) => {
-                    eprintln!("Error: {}", err);
+                    eprintln!("Error: {err}");
                 }
             }
             return Ok(());
@@ -78,7 +78,7 @@ pub fn main() -> Result<(), GGError> {
     }
 
     let haystack_builder = walk_builder(
-        cli_args.paths.iter().map(|p| p.as_path()).collect(),
+        cli_args.paths.iter().map(PathBuf::as_path).collect(),
         &cli_args.ignored_paths,
         cli_args.n_threads,
         !cli_args.disregard_gitignore,
@@ -110,7 +110,7 @@ pub fn main() -> Result<(), GGError> {
                     ignore::WalkState::Continue
                 }
                 Err(err) => {
-                    eprintln!("Error: {}", err);
+                    eprintln!("Error: {err}");
                     ignore::WalkState::Continue
                 }
             })
