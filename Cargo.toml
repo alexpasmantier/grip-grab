@@ -1,6 +1,6 @@
 [package]
 name = "grip-grab"
-version = "0.5.7"
+version = "0.6.7"
 edition = "2021"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 license = "Apache-2.0"
@@ -46,5 +46,5 @@ debug = "none"
 strip = "symbols"
 debug-assertions = false
 overflow-checks = false
-lto = "fat"
+lto = "thin"
 panic = "abort"
